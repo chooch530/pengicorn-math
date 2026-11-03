@@ -13,6 +13,7 @@ or **Words** (sight words, including the teacher's weekly printed list). 5–10 
 - **v1.2 (Nov 3, 2026):** The problem always reads on one line, left to right. Numbers only by default; per-kid "Counting pictures" switch in the parent area. In numbers mode, pictures pop in as the hint after a wrong answer.
 - **v1.3 (Nov 3, 2026):** Mixed problems. Bands share the level max (only the floor rises), answers are picked evenly across sums, no back-to-back same answer, first number or flipped pair, and answer buttons are never sorted and are often non-consecutive.
 - **v1.4 (Nov 3, 2026):** Words mode. Math/Words picker after player select. Sight-word rounds with look-alike choices. Built-in Dolch lists. Parent area: per-kid word list, word stats, and "Add teacher list" from a photo (on-device OCR) or typed/pasted words with an editable check step. Parent gear made easier to see.
+- **v1.5 (Nov 3, 2026):** Calogero asked for the game choice on the first screen. The splash now shows Math / Words cards (replacing Play and the separate picker screen) → pick player → straight into that game.
 - **Live at:** https://chooch530.github.io/pengicorn-math/ (repo chooch530/pengicorn-math, GitHub Pages from `main` root).
 - **Next:** kid testing feedback on Words mode. Do NOT build Unicorn Meadow or Rainbow Castle until Calogero confirms.
 - **Ideas Calogero has seen, not approved yet:** My Friends collection, kid's own character as the math hero, fish flying to the hero plus streak celebrations, soft background music.
@@ -53,7 +54,7 @@ or **Words** (sight words, including the teacher's weekly printed list). 5–10 
 | Offline | `sw.js` cache-first. **Bump `VERSION` on every deploy** and add new files to `FILES`. `tests/sw.test.js` fails if a file is missing from `FILES`. |
 | Art swap | Screens only call `art.character(kind, variant)` / `art.object(kind)` from `js/art/registry.js`. A sprite pack is a new provider passed to `setProvider()`. Animations are CSS classes on the returned element (`.bounce`, `.dance`, `.glow`, idle blink on `.eyes`). |
 | Pictures setting | `kid.prefs.pictures` (default false, `normalizeKid` adds it to old saves). Off: big number cards, spoken "What is 2 plus 1?". On: objects with every problem plus the Pip story. Off-mode hint/reveal: `showPictures()` removes `.pics-off`, re-fits, then glows/counts as before. |
-| Navigation | splash → kids → **modes** (Math / Words) → Math: home (map) → levels → play; Words: words (play). Home buttons go one step back up this tree. The parent gear (hold 3s) is on kids (top-left), modes and map (bottom-left). |
+| Navigation | splash (**Math / Words** cards; the tap also unlocks audio, sets `app.mode`) → kids (or addKid) → `app.startGame()` → Math: home (map) → levels → play; Words: words (play). Home from the map or words goes back to the splash to switch games; the splash always leads to player select. The parent gear (hold 3s) is on kids (top-left) and the map (bottom-left). |
 | Words round | `logic/sight.js`, same shape as `round.js`: 10 words, hint on 1st miss (re-say the word), reveal on 2nd ("This word says ___"), stars and adaptive bands reuse `difficulty.js`/`scoring.js`. Prompt "Find the word: ___." A big blue speaker button says just the word. The kid's own character is the hero. Meadow theme. |
 | Word choices | 2 look-alikes by `lookAlikeScore` (edit distance, anagram bonus for was/saw, same first/last letter, length). Prefer the kid's list (−1.2), topped up from all Dolch words for short lists. Band 0 = random 2 of the closest 8, band 1 = of 5, band 2 = always the closest + 1 of the next 3. |
 | Word order | `wordQueue`: every word before any repeats, last round's words go to the back, never the same word twice in a row. Rounds are always 10, so lists of any size work. |
@@ -77,7 +78,7 @@ tests/                node --test; no dependencies
 
 ## Deploying
 - Commit and push to `main`; Pages redeploys in about a minute.
-- **Bump `VERSION` in `sw.js` on every deploy** (v1.4.0 is current), or the iPad keeps the old cache.
+- **Bump `VERSION` in `sw.js` on every deploy** (v1.5.0 is current), or the iPad keeps the old cache.
 - Claude's push access needs the Claude GitHub App *installed* on chooch530 with this repo selected. Being *authorized* is not enough.
 
 ## Commands

@@ -42,7 +42,7 @@ export function render(app) {
   const el = h(
     'div',
     { class: 'screen words-play' },
-    topbar(app, { left: [homeButton(app, 'modes')], center: dots }),
+    topbar(app, { left: [homeButton(app, 'splash')], center: dots }),
     h('div', { class: 'words-hero' }, hero, hear),
     cards
   );
@@ -131,7 +131,7 @@ export function render(app) {
     const summary = sightSummary(round);
     const updated = recordWordRound(app.kid, list.id, summary);
     app.updateKid(updated);
-    app.go('reward', { summary, mode: 'words', homeTarget: 'modes', playTarget: 'words' });
+    app.go('reward', { summary, mode: 'words', homeTarget: 'splash', playTarget: 'words' });
   }
 
   let t;

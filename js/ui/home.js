@@ -59,7 +59,7 @@ export function render(app) {
   const el = h(
     'div',
     { class: 'screen' },
-    topbar(app, { left: [homeButton(app, 'modes'), kidChip, starCount(kid.totalStars)] }),
+    topbar(app, { left: [homeButton(app, 'splash'), kidChip, starCount(kid.totalStars)] }),
     h(
       'div',
       { class: 'map' },

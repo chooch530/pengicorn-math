@@ -272,6 +272,8 @@ button {
   gap: 24px;
 }
 
+.splash .mode-row { flex: 0 1 auto; }
+
 .splash .hero {
   display: flex;
   align-items: flex-end;
@@ -1336,4 +1338,9 @@ body[data-theme="meadow"] {
   font-size: 22px;
   padding: 0 14px 0 8px;
   color: var(--ink-soft);
+}
+
+/* First screen: bigger game cards. */
+.splash .mode-card {
+  width: min(44vw, 38vh, 340px);
 }

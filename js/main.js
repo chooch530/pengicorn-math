@@ -7,7 +7,6 @@ import * as kidSelect from './ui/kidSelect.js';
 import * as home from './ui/home.js';
 import * as play from './ui/play.js';
 import * as levelSelect from './ui/levelSelect.js';
-import * as modes from './ui/modes.js';
 import * as wordsPlay from './ui/wordsPlay.js';
 import * as reward from './ui/reward.js';
 
@@ -17,7 +16,6 @@ const SCREENS = {
   addKid: kidSelect.renderAddKid,
   home: home.render,
   levels: levelSelect.render,
-  modes: modes.render,
   words: wordsPlay.render,
   play: play.render,
   reward: reward.render,
@@ -31,9 +29,14 @@ let currentParams = {};
 const app = {
   store: loadStore(),
   kidId: null,
+  mode: 'math', // chosen on the first screen: 'math' | 'words'
 
   get kid() {
     return this.store.kids.find((k) => k.id === this.kidId) || null;
+  },
+  /** After a player is picked: go into the game chosen on the first screen. */
+  startGame() {
+    this.go(this.mode === 'words' ? 'words' : 'home');
   },
   setKid(id) {
     this.kidId = id;
