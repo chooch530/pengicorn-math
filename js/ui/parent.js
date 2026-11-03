@@ -2,7 +2,7 @@
 // math question on a number pad that 5–7 year olds can't do yet.
 import { h, icons } from './dom.js';
 import * as speech from '../audio/speech.js';
-import { accuracy, mostMissed, newKid, exportStore, importStore } from '../logic/progress.js';
+import { accuracy, mostMissed, newKid, exportStore, importStore, unlockAll } from '../logic/progress.js';
 import { LEVELS } from '../logic/levels.js';
 
 function gateQuestion() {
@@ -85,7 +85,7 @@ function openParentPanel(app) {
         { class: 'stats' },
         h('div', {}, h('b', {}, acc === null ? '—' : `${acc}%`), 'first-try accuracy (addition)'),
         h('div', {}, h('b', {}, String(s.problems)), 'problems answered'),
-        h('div', {}, h('b', {}, `L${mp.level} · ${['easy', 'medium', 'hard'][mp.band] || mp.band}`), 'addition level · difficulty'),
+        h('div', {}, h('b', {}, mp.level === 1 ? 'Level 1' : `Levels 1–${mp.level}`), 'addition levels open'),
         h('div', {}, h('b', {}, String(kid.totalStars)), 'stars earned')
       ),
       h(
@@ -112,6 +112,19 @@ function openParentPanel(app) {
           },
           'Reset progress'
         ),
+        mp.level < Math.max(...Object.keys(LEVELS.add).map(Number))
+          ? h(
+              'button',
+              {
+                class: 'btn small-btn',
+                onclick: () => {
+                  app.updateKid(unlockAll(kid, 'add'));
+                  paint();
+                },
+              },
+              'Unlock all levels'
+            )
+          : null,
         h(
           'button',
           {
@@ -214,7 +227,12 @@ function openParentPanel(app) {
           'Restore from code'
         )
       ),
-      h('p', { class: 'note', style: { marginTop: '20px' } }, `Levels built so far: Penguin Island Level 1 (sums up to ${LEVELS.add[1].maxAnswer}).`)
+      h(
+        'p',
+        { class: 'note', style: { marginTop: '20px' } },
+        `Penguin Island levels: 1 = sums to ${LEVELS.add[1].maxAnswer}, 2 = to ${LEVELS.add[2].maxAnswer}, 3 = to ${LEVELS.add[3].maxAnswer}. ` +
+          'Kids unlock the next level after 2 strong rounds in a row at the hardest difficulty of their current level.'
+      )
     );
   }
   paint();

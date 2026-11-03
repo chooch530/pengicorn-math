@@ -16,8 +16,8 @@ export function fishSVG() {
 export function snowballSVG() {
   return `
 <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <circle cx="32" cy="34" r="27" fill="#eaf6ff" stroke="#b9dcf7" stroke-width="3"/>
-  <path d="M14 42 Q32 58 52 40" stroke="#c7e3f8" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <circle cx="32" cy="34" r="27" fill="#eef8ff" stroke="#7fb6e6" stroke-width="3.5"/>
+  <path d="M14 42 Q32 58 52 40" stroke="#b4d8f5" stroke-width="5" fill="none" stroke-linecap="round"/>
   <circle cx="23" cy="24" r="6" fill="#fff"/>
 </svg>`;
 }

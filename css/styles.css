@@ -361,7 +361,7 @@ button {
 }
 
 .add-kid .preview {
-  width: min(32vmin, 220px);
+  width: min(20vmin, 160px);
 }
 
 .add-kid .row {
@@ -482,41 +482,65 @@ button {
 
 /* ---------- play ---------- */
 
+/* --obj (object size) is set by play.js fit(), which shrinks it until the problem fits the screen. */
 .play {
+  --obj: 80px;
   display: grid;
   grid-template-areas:
     "top"
-    "dots"
     "pip"
     "eq"
     "answers";
-  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  overflow: hidden;
 }
 
 @media (orientation: landscape) {
   .play {
     grid-template-areas:
       "top top"
-      "dots dots"
       "pip eq"
       "answers answers";
-    grid-template-columns: minmax(0, 0.7fr) minmax(0, 2fr);
-    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 0.55fr) minmax(0, 2fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
   }
+}
+
+/* Phone in landscape: no room for Pip; answers go in a column on the right. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .play {
+    grid-template-areas:
+      "top top"
+      "eq answers";
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .play .pip-spot { display: none; }
+  .play .answers { flex-direction: column; justify-content: center; }
+  .play .answer { flex: 1 1 0; width: 140px; height: auto; min-height: 80px; max-height: 120px; }
 }
 
 .play .topbar { grid-area: top; }
 
-.dots {
-  grid-area: dots;
+.topbar .spacer {
   display: flex;
   justify-content: center;
-  gap: 10px;
+  min-width: 0;
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(3px, 1vw, 10px);
+  min-width: 0;
 }
 
 .dots span {
-  width: 22px;
-  height: 22px;
+  flex: 0 1 22px;
+  min-width: 6px;
+  aspect-ratio: 1;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.8);
   box-shadow: inset 0 0 0 3px rgba(43, 35, 80, 0.15);
@@ -531,11 +555,12 @@ button {
   align-items: center;
   justify-content: center;
   min-height: 0;
+  overflow: hidden;
 }
 
 .pip-spot .char {
   height: 100%;
-  max-height: 240px;
+  max-height: 220px;
   width: auto;
   max-width: 100%;
 }
@@ -545,41 +570,59 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1.6vmin;
-  padding: 8px 0 16px;
+  gap: clamp(6px, 1.6vmin, 16px);
+  padding: 8px 0 12px;
   flex-wrap: nowrap;
+  min-width: 0;
 }
+
+/* Stacked: A on its own row, then "+ B = ?". Used on narrow screens with big numbers. */
+.equation .break { display: none; }
+.equation.stack { flex-wrap: wrap; align-content: center; row-gap: 10px; }
+.equation.stack .break { display: block; flex-basis: 100%; height: 0; }
 
 .group {
   background: rgba(255, 255, 255, 0.85);
-  border-radius: 28px;
+  border-radius: 24px;
   box-shadow: var(--shadow);
-  padding: 12px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  min-width: 120px;
+  min-width: 72px;
+  flex-shrink: 0; /* never squeeze the objects; fit() shrinks --obj instead */
 }
 
 .objects {
-  /* Object size scales with the screen so 2 groups + symbols always fit on one line. */
-  --obj: clamp(44px, min(10vmin, calc((100vw - 380px) / 6)), 100px);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--obj) * 0.25);
+  align-items: center;
+}
+
+.frame {
   display: grid;
   grid-template-columns: repeat(var(--cols, 3), var(--obj));
   grid-auto-rows: calc(var(--obj) * 0.8);
-  gap: 8px;
+  gap: calc(var(--obj) * 0.1);
   place-items: center;
-  min-height: calc(var(--obj) * 0.8);
 }
 
-.objects .obj {
+/* Ten-frame look for numbers above 5: a soft box around each group of ten. */
+.frame.tens {
+  background: rgba(90, 167, 255, 0.1);
+  border-radius: 14px;
+  padding: calc(var(--obj) * 0.08);
+}
+
+.frame .obj {
   width: 100%;
   height: 100%;
   transition: transform 0.2s, filter 0.2s;
 }
 
-.objects .empty {
+.frame .empty {
   width: var(--obj);
   height: calc(var(--obj) * 0.8);
   border: 4px dashed rgba(43, 35, 80, 0.2);
@@ -624,20 +667,22 @@ button {
 }
 
 .num {
-  font-size: clamp(40px, 7vmin, 64px);
+  font-size: clamp(32px, 6vmin, 64px);
   font-weight: 900;
   line-height: 1;
 }
 
 .sym {
-  font-size: clamp(44px, 8vmin, 72px);
+  flex-shrink: 0;
+  font-size: clamp(32px, 7vmin, 72px);
   font-weight: 900;
   color: var(--ink-soft);
 }
 
 .qmark {
-  width: clamp(80px, 13vmin, 120px);
-  height: clamp(80px, 13vmin, 120px);
+  flex-shrink: 0;
+  width: clamp(60px, 12vmin, 120px);
+  height: clamp(60px, 12vmin, 120px);
   border-radius: 28px;
   background: var(--sun);
   box-shadow: 0 6px 0 #e0a800;
@@ -664,7 +709,8 @@ button {
 
 .answer {
   flex: 0 1 220px;
-  height: clamp(110px, 18vmin, 170px);
+  min-width: 80px;
+  height: clamp(96px, 16vmin, 170px);
   font-size: clamp(56px, 10vmin, 96px);
   font-weight: 900;
   border-radius: 36px;
@@ -897,4 +943,125 @@ button {
 .note {
   font-size: 15px;
   color: var(--ink-soft);
+}
+
+/* ---------- level select ---------- */
+
+.level-row {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: center;
+  justify-content: center;
+  gap: 3vmin;
+}
+
+.level-pip {
+  width: min(22vmin, 170px);
+  height: auto;
+}
+
+.level-card {
+  position: relative;
+  width: min(30vmin, 220px);
+  min-width: 140px;
+  aspect-ratio: 0.8;
+  border-radius: 36px;
+  background: linear-gradient(#ffffff 0 62%, #d7efff 62% 100%);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+}
+
+.level-card:active {
+  transform: translateY(4px);
+  box-shadow: var(--shadow-press);
+}
+
+.level-card .level-num {
+  font-size: clamp(56px, 11vmin, 96px);
+  font-weight: 900;
+  line-height: 1;
+  color: var(--accent-dark);
+}
+
+.level-card .level-fish {
+  display: flex;
+  gap: 4px;
+}
+
+.level-card .level-fish svg {
+  width: clamp(26px, 5vmin, 40px);
+  height: auto;
+}
+
+.level-card .level-stars {
+  display: flex;
+  gap: 2px;
+}
+
+.level-card .level-stars svg {
+  width: clamp(24px, 4.5vmin, 36px);
+  height: auto;
+}
+
+.level-card.locked {
+  background: linear-gradient(#f1eff7 0 62%, #e3e0ee 62% 100%);
+}
+
+.level-card.locked .level-num,
+.level-card.locked .level-fish {
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+
+.level-card .lock {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 44px;
+  height: 44px;
+}
+
+/* ---------- small screens (phones) ---------- */
+
+@media (max-width: 500px), (max-height: 520px) {
+  :root { --tap: 80px; }
+  .kid-chip .kid-name { display: none; }
+  .choice { width: 96px; height: 96px; }
+  .screen { padding: 10px; gap: 8px; }
+  .btn svg.icon { width: 40px; height: 40px; }
+  .topbar { gap: 8px; }
+  .topbar .kid-chip { font-size: 20px; }
+  .star-count { font-size: 22px; padding: 4px 12px 4px 6px; }
+  .star-count svg { width: 30px; height: 30px; }
+}
+
+/* Reward screen on short screens (phones in landscape). */
+@media (max-height: 520px) {
+  .reward { flex-direction: row; flex-wrap: wrap; align-content: center; }
+  .reward .topbar { flex-basis: 100%; }
+  .reward .pip-dance { display: none; }
+  .reward .big-stars svg { width: 22vmin; height: 22vmin; }
+  .reward .big-stars .slot:nth-child(2) svg { width: 26vmin; height: 26vmin; }
+  .reward .actions .btn-big { width: 120px !important; height: 120px !important; }
+}
+
+/* Parent gear on the map sits in the bottom corner, away from the kid buttons. */
+.corner-gear {
+  position: absolute;
+  left: max(12px, env(safe-area-inset-left));
+  bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+@media (max-height: 520px) {
+  .splash { gap: 10px; }
+  .splash .hero .char { width: 22vmin; }
+  .splash .btn-big { width: 30vmin; height: 30vmin; }
+  .splash h1 { font-size: 32px; }
 }

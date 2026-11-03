@@ -23,10 +23,11 @@ export function makeAddition(a, b) {
 
 /**
  * Pick the next problem for a round.
- * Draws from the current band, never repeating anything in `usedIds`.
+ * Draws from the current band, never repeating anything in `usedIds`,
+ * and avoiding `avoidIds` (last round's problems) when the band has other options.
  * If the band is exhausted, falls back to the whole level so a round never repeats.
  */
-export function nextProblem({ mode, level, band, usedIds, rng, objectKinds = ['fish'] }) {
+export function nextProblem({ mode, level, band, usedIds, rng, objectKinds = ['fish'], avoidIds = new Set() }) {
   const cfg = levelConfig(mode, level);
   const [lo, hi] = cfg.bands[band];
   const fresh = (p) => !usedIds.has(p.id);
@@ -34,6 +35,10 @@ export function nextProblem({ mode, level, band, usedIds, rng, objectKinds = ['f
   let candidates = additionPool(lo, hi).filter(fresh);
   if (candidates.length === 0) candidates = additionPool(1, cfg.maxAnswer).filter(fresh);
   if (candidates.length === 0) throw new Error('Problem pool exhausted');
+
+  // Soft preference: skip problems seen in the kid's last round, if anything else is left.
+  const notRecent = candidates.filter((p) => !avoidIds.has(p.id));
+  if (notRecent.length) candidates = notRecent;
 
   // Problems with a 0 are useful but shouldn't dominate: halve their weight.
   const nonZero = candidates.filter((p) => p.a !== 0 && p.b !== 0);

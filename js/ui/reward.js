@@ -7,7 +7,9 @@ import { sfx } from '../audio/sfx.js';
 import * as speech from '../audio/speech.js';
 import { confetti } from './confetti.js';
 
-export function render(app, { summary, leveledUp, mode = 'add' }) {
+export function render(app, { summary, leveledUp, mode = 'add', level = 1, newLevel = level }) {
+  // After unlocking a level, the big Play button goes straight to the new one.
+  const nextLevel = leveledUp ? newLevel : level;
   const kid = app.kid;
   const slots = [0, 1, 2].map(() => h('div', { class: 'slot' }, svg(starSVG())));
   const pip = art.character('penguin', 'blue', { className: 'dance' });
@@ -17,7 +19,7 @@ export function render(app, { summary, leveledUp, mode = 'add' }) {
   const el = h(
     'div',
     { class: 'screen reward' },
-    topbar(app, { left: [homeButton(app), starCount(kid.totalStars)] }),
+    topbar(app, { left: [homeButton(app, 'levels'), starCount(kid.totalStars)] }),
     h('div', { class: 'big-stars' }, slots),
     h('div', { class: 'pip-dance' }, pip),
     h(
@@ -31,7 +33,7 @@ export function render(app, { summary, leveledUp, mode = 'add' }) {
           'aria-label': 'Play again',
           onclick: () => {
             sfx.tap();
-            app.go('play', { mode });
+            app.go('play', { mode, level: nextLevel });
           },
         },
         icons.play()
@@ -42,8 +44,9 @@ export function render(app, { summary, leveledUp, mode = 'add' }) {
   const starWord = summary.stars === 1 ? 'star' : 'stars';
   const line =
     `Great job, ${kid.name}! You earned ${summary.stars} ${starWord}!` +
-    (leveledUp ? ' Wow, you are ready for the next level! It is coming soon.' : '') +
-    ' Tap the green button to play again.';
+    (leveledUp
+      ? ` Wow! You opened level ${newLevel}! Tap the green button to try it.`
+      : ' Tap the green button to play again.');
 
   return {
     el,

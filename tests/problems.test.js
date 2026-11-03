@@ -97,3 +97,28 @@ test('a miss gives a hint, a second miss reveals', () => {
   assert.equal(answer(r, wrong[1]).outcome, 'reveal');
   assert.equal(r.log[0].firstTry, false);
 });
+
+test('next round avoids last round\'s problems when it can', () => {
+  for (const seed of SEEDS.slice(0, 100)) {
+    for (const level of [2, 3]) {
+      const first = createRound({ mode: 'add', level, band: 1, rng: createRng(seed) });
+      const ids = [];
+      while (nextInRound(first)) { ids.push(first.problem.id); answer(first, first.problem.answer); }
+      const second = createRound({ mode: 'add', level, band: 1, rng: createRng(seed + 1), avoidIds: ids });
+      let overlap = 0;
+      while (nextInRound(second)) { if (ids.includes(second.problem.id)) overlap++; answer(second, second.problem.answer); }
+      assert.equal(overlap, 0, `L${level} seed ${seed} repeated ${overlap} from last round`);
+    }
+  }
+});
+
+test('level 3 problems can reach 20 and stay non-negative', () => {
+  const answers = new Set();
+  for (const seed of SEEDS) {
+    const rng = createRng(seed);
+    const p = nextProblem({ mode: 'add', level: 3, band: 2, usedIds: new Set(), rng });
+    answers.add(p.answer);
+    assert.ok(p.a >= 0 && p.b >= 0 && p.answer <= 20 && p.answer >= 12);
+  }
+  assert.ok(answers.has(20));
+});

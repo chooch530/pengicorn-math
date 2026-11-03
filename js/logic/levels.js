@@ -13,7 +13,7 @@ export const LEVELS = {
 };
 
 // Levels that are actually playable in this build. Others exist in logic only.
-export const PLAYABLE = { add: [1] };
+export const PLAYABLE = { add: [1, 2, 3] };
 
 export function levelConfig(mode, level) {
   const cfg = LEVELS[mode]?.[level];

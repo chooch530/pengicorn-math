@@ -8,23 +8,29 @@ import { sfx } from '../audio/sfx.js';
 import * as speech from '../audio/speech.js';
 import { createRng } from '../logic/rng.js';
 import { createRound, nextInRound, answer, roundSummary } from '../logic/round.js';
-import { LEVELS, PLAYABLE, ROUND_SIZE } from '../logic/levels.js';
-import { recordRound } from '../logic/progress.js';
+import { PLAYABLE, ROUND_SIZE } from '../logic/levels.js';
+import { recordRound, bandFor } from '../logic/progress.js';
 import { questionText, praiseText, hintText, countingText, equationText } from '../logic/words.js';
 
-export function render(app, { mode = 'add' } = {}) {
+export function render(app, { mode = 'add', level } = {}) {
   const kid = app.kid;
   if (!kid) return app.go('kids');
 
-  // Only Level 1 is built. A kid who has earned Level 2 keeps playing L1 at the top band.
   const mp = kid.modes[mode];
-  const maxPlayable = Math.max(...PLAYABLE[mode]);
-  const level = Math.min(mp.level, maxPlayable);
-  const numBands = LEVELS[mode][level].bands.length;
-  const band = mp.level > level ? numBands - 1 : Math.min(mp.band, numBands - 1);
+  // Play the requested level if it's unlocked and built; otherwise the highest one that is.
+  const open = PLAYABLE[mode].filter((lv) => lv <= mp.level);
+  const lvl = open.includes(level) ? level : Math.max(...open);
+  const band = bandFor(kid, mode, lvl);
 
   const rng = createRng();
-  const round = createRound({ mode, level, band, rng, objectKinds: ['fish', 'snowball'] });
+  const round = createRound({
+    mode,
+    level: lvl,
+    band,
+    rng,
+    objectKinds: ['fish', 'snowball'],
+    avoidIds: mp.recent || [],
+  });
 
   const pip = art.character('penguin', 'blue');
   const dots = h('div', { class: 'dots' });
@@ -38,8 +44,7 @@ export function render(app, { mode = 'add' } = {}) {
   const el = h(
     'div',
     { class: 'screen play' },
-    topbar(app, { left: [homeButton(app)] }),
-    dots,
+    topbar(app, { left: [homeButton(app, 'levels')], center: dots }),
     h('div', { class: 'pip-spot' }, pip),
     equation,
     answers
@@ -53,20 +58,63 @@ export function render(app, { mode = 'add' } = {}) {
     );
   }
 
+  /**
+   * Objects for one number. Up to 5: a small cluster (4 = 2x2, 5 = 3+2).
+   * Above 5: ten-frames (rows of 5, two rows per frame) so kids can see fives and tens.
+   */
   function group(count, kind, arriving) {
-    // 4 -> 2x2, 5 -> 3+2, 6 -> 3x2; larger counts (later levels) use rows of 5.
-    const cols = count <= 3 ? Math.max(count, 1) : count === 4 ? 2 : count <= 6 ? 3 : 5;
     const objs = h('div', { class: 'objects' });
-    objs.style.setProperty('--cols', cols);
-    if (count === 0) objs.append(h('div', { class: 'empty' }));
-    for (let i = 0; i < count; i++) {
+    const add = (parent, i) => {
       const o = art.object(kind, { className: arriving ? 'arrive' : '' });
-      if (arriving) o.style.animationDelay = `${0.4 + i * 0.18}s`;
+      if (arriving) o.style.animationDelay = `${0.4 + i * (count > 10 ? 0.07 : 0.15)}s`;
       const wrap = h('div', { class: 'obj-wrap' }, o);
-      objs.append(wrap);
+      parent.append(wrap);
       objectEls.push(wrap);
+    };
+    if (count === 0) {
+      const f = h('div', { class: 'frame' }, h('div', { class: 'empty' }));
+      f.style.setProperty('--cols', 1);
+      objs.append(f);
+    } else if (count <= 5) {
+      const f = h('div', { class: 'frame' });
+      f.style.setProperty('--cols', count <= 3 ? count : count === 4 ? 2 : 3);
+      objs.append(f);
+      for (let i = 0; i < count; i++) add(f, i);
+    } else {
+      for (let start = 0; start < count; start += 10) {
+        const f = h('div', { class: 'frame tens' });
+        f.style.setProperty('--cols', 5);
+        objs.append(f);
+        for (let i = start; i < Math.min(count, start + 10); i++) add(f, i);
+      }
     }
     return h('div', { class: 'group' }, objs, h('div', { class: 'num' }, String(count)));
+  }
+
+  /**
+   * Size the objects so the whole problem fits on this screen.
+   * Tries a single row (A + B = ?) and a stacked layout, keeps whichever gives bigger objects.
+   */
+  function fit() {
+    if (!alive || !el.isConnected) return;
+    const fits = () =>
+      equation.scrollWidth <= equation.clientWidth + 1 &&
+      el.scrollHeight <= el.clientHeight + 1 &&
+      el.scrollWidth <= el.clientWidth + 1;
+    const tryLayout = (stacked) => {
+      equation.classList.toggle('stack', stacked);
+      let size = 110;
+      el.style.setProperty('--obj', `${size}px`);
+      while (!fits() && size > 18) {
+        size = Math.floor(size * 0.92);
+        el.style.setProperty('--obj', `${size}px`);
+      }
+      return size;
+    };
+    const row = tryLayout(false);
+    if (row >= 80) return; // row layout is roomy enough
+    const stacked = tryLayout(true);
+    if (stacked <= row * 1.15) tryLayout(false);
   }
 
   function paintProblem(p) {
@@ -74,6 +122,7 @@ export function render(app, { mode = 'add' } = {}) {
     qmark = h('div', { class: 'qmark' }, '?');
     equation.replaceChildren(
       group(p.a, p.objectKind, false),
+      h('div', { class: 'break' }),
       h('div', { class: 'sym' }, '+'),
       group(p.b, p.objectKind, true),
       h('div', { class: 'sym' }, '='),
@@ -86,6 +135,7 @@ export function render(app, { mode = 'add' } = {}) {
         return b;
       })
     );
+    fit();
     if (p.b > 0) setTimeout(() => alive && sfx.splash(), 400);
   }
 
@@ -99,14 +149,15 @@ export function render(app, { mode = 'add' } = {}) {
   }
 
   async function glowAll({ tags = false } = {}) {
+    const step = objectEls.length > 10 ? (tags ? 380 : 180) : tags ? 520 : 320;
     for (let i = 0; i < objectEls.length; i++) {
       if (!alive) return;
       const w = objectEls[i];
       const o = w.firstElementChild;
       o.classList.add('glow');
       if (tags) w.append(h('div', { class: 'count-tag' }, String(i + 1)));
-      sfx.count(i);
-      await wait(tags ? 520 : 320);
+      sfx.count(i % 12);
+      await wait(step);
       if (!tags) o.classList.remove('glow');
     }
   }
@@ -164,19 +215,29 @@ export function render(app, { mode = 'add' } = {}) {
 
   function finish() {
     const summary = roundSummary(round);
-    const { kid: updated, leveledUp } = recordRound(app.kid, mode, level, summary);
+    const { kid: updated, leveledUp } = recordRound(app.kid, mode, lvl, summary);
     app.updateKid(updated);
-    app.go('reward', { summary, leveledUp, mode });
+    app.go('reward', { summary, leveledUp, mode, level: lvl, newLevel: updated.modes[mode].level });
   }
+
+  let resizeTimer;
+  const onResize = () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(fit, 120);
+  };
 
   return {
     el,
     enter() {
       document.body.dataset.theme = 'island';
+      addEventListener('resize', onResize);
+      addEventListener('orientationchange', onResize);
       nextProblem();
     },
     cleanup() {
       alive = false;
+      removeEventListener('resize', onResize);
+      removeEventListener('orientationchange', onResize);
     },
   };
 }

@@ -7,9 +7,11 @@ iPad Safari math game for kids 5–7 (Calogero's two kids, 6 and 7). Penguins (a
 unicorns (subtraction), Rainbow Castle (multiplication). 5–10 minute sessions. Must feel like a game.
 
 ## Status
-- **Built:** Penguin Island Level 1 end to end. That covers the splash screen, kid select/add kid, the map, a 10-problem round, the reward screen, the minimal parent screen, offline support, and the home-screen manifest.
-- **Next:** wait for kid testing feedback. Do NOT build other modes until Calogero confirms.
-- **Not built yet:** Level 2/3 UI, Unicorn Meadow, Rainbow Castle, "My Friends" collection and unlockables.
+- **v1.0 (Nov 2, 2026):** Penguin Island Level 1 end to end. Splash screen, kid select/add kid, map, 10-problem round, reward screen, minimal parent screen, offline support, home-screen manifest.
+- **v1.1 (Nov 2, 2026):** Penguin Island Levels 2 (sums to 10) and 3 (sums to 20) with a level picker. Parent "Unlock all levels". Avoids repeating last round's problems. Auto-fit layout for every iPad/iPhone size, both orientations. Ten-frames for numbers above 5.
+- **Live at:** https://chooch530.github.io/pengicorn-math/ (repo chooch530/pengicorn-math, GitHub Pages from `main` root).
+- **Next:** kid testing feedback. Do NOT build Unicorn Meadow or Rainbow Castle until Calogero confirms.
+- **Not built yet:** Unicorn Meadow, Rainbow Castle, "My Friends" collection and unlockables.
 
 ## Hard rules (from the brief)
 - No reading required. Every instruction is spoken. Every screen has a replay-audio button.
@@ -28,13 +30,19 @@ unicorns (subtraction), Rainbow Castle (multiplication). 5–10 minute sessions.
 | Bands | Each level has 3 difficulty bands (answer ranges) in `logic/levels.js`. If a band runs out of unused problems, draw from the whole level. |
 | Adaptive | 4 first-try-correct in a row: up a band. 2 not-first-try in a row: down a band. Only first-try counts as "right" internally. The kid never sees this. |
 | Stars | First-try correct out of 10: 9–10 = 3, 6–8 = 2, else 1. Never 0. |
-| Level up | 2 rounds in a row of 2+ stars while in the top band. Level 2 isn't built, so the kid's saved level goes to 2 but play stays on L1 at the top band, and the reward screen says "next level coming soon." |
+| Levels | Addition: L1 sums 1–5, L2 to 10, L3 to 20 (`logic/levels.js`). Penguin Island opens a level picker (icebergs 1–3, best stars shown). Locked levels speak how to open them. |
+| Level up | Unlock the next level after 2 rounds in a row of 2+ stars, finished in the top band, played on the highest unlocked level. Replaying an easier level saves its band but never unlocks. After an unlock, the reward Play button goes straight to the new level. Parent can "Unlock all levels" (Calogero's 6- and 7-year-old shouldn't grind L1). |
+| Progress shape | `kid.modes.add = { level (highest unlocked), bands: {level: band}, strongRounds, bestStars: {level: n}, recent: [ids of last round] }`. `normalizeKid()` migrates v1.0 saves (single `band`) on load. |
+| Repetition | Within a round: never repeat. Across rounds: avoid last round's problems when the band has other options (soft rule). L1 is inherently small (20 problems), which is why kids felt it repeated. |
+| Layout fit | `play.js fit()` shrinks `--obj` from 110px until the screen has no overflow. Tries a single row (A + B = ?) and a stacked layout (A on top, then "+ B = ?"), keeping whichever gives bigger objects (row wins if ≥80px). Re-fits on resize/rotation. `.group` never shrinks (flex-shrink 0). The play grid column is `minmax(0, 1fr)` so wide content can't widen the page. |
+| Object layout | ≤5: cluster (4 = 2×2, 5 = 3+2). >5: ten-frames (rows of 5, two rows per frame, soft box per ten). |
+| Phones | Supported as a bonus (the iPad is the target). At ≤500px wide or ≤520px tall: 80px tap targets, kid name hidden in the chip. Phone landscape: Pip hidden, answers in a right-hand column. The parent gear on the map sits in the bottom-left corner, not the top bar. |
 | Distractors | Within ±2, clamped to [0, level max]. One of three shapes picked evenly (answer lowest / middle / highest), then button order shuffled. |
 | Mute toggle | Mutes **sound effects only**, not speech. Speech is the instruction channel, and muting it makes the game unplayable for non-readers. Revisit if Calogero wants full silence. |
 | Audio unlock | The splash Play tap unlocks speech and Web Audio (iOS requirement). Every tap also calls `sfx.unlock()` in case iOS suspended the context. |
 | Speech | Rate 0.85, pitch 1.1. Prefers Enhanced/Premium en-US voices (Ava, Samantha…). Parent can pick a voice; the choice is saved. Spoken text always comes from `logic/words.js`, never from display strings. |
 | Parent gate | Hold the gear 3s, then answer a×b (6–9 × 6–9) on a number pad. |
-| Parent screen | Per kid: first-try accuracy, problems answered, level/band, stars, top-5 missed, reset, delete. Also: voice picker, backup/restore code (base64 JSON). |
+| Parent screen | Per kid: first-try accuracy, problems answered, levels open, stars, top-5 missed, reset, unlock all levels, delete. Also: voice picker, backup/restore code (base64 JSON). |
 | Storage | localStorage key `pengicorn.v1`, schema 1, every call in try/catch. Max 3 kids. Home-screen launch is required: Safari tabs lose data after 7 days and keep separate storage from the icon. |
 | Offline | `sw.js` cache-first. **Bump `VERSION` on every deploy** and add new files to `FILES`. `tests/sw.test.js` fails if a file is missing from `FILES`. |
 | Art swap | Screens only call `art.character(kind, variant)` / `art.object(kind)` from `js/art/registry.js`. A sprite pack is a new provider passed to `setProvider()`. Animations are CSS classes on the returned element (`.bounce`, `.dance`, `.glow`, idle blink on `.eyes`). |
@@ -49,13 +57,19 @@ js/main.js            boot + router (app object shared by screens)
 js/logic/             PURE, no DOM: rng, levels, problems, distractors, difficulty, scoring, round, progress, words
 js/audio/             speech.js (Web Speech), sfx.js (Web Audio)
 js/art/               registry.js (the only art entry point), penguin.js, unicorn.js, objects.js
-js/ui/                dom, chrome (top bar, hold button), confetti, splash, kidSelect, home, play, reward, parent
+js/ui/                dom, chrome (top bar, hold button), confetti, splash, kidSelect, home, levelSelect, play, reward, parent
 tests/                node --test; no dependencies
 ```
+
+## Deploying
+- Commit and push to `main`; Pages redeploys in about a minute.
+- **Bump `VERSION` in `sw.js` on every deploy** (v1.1.0 is current), or the iPad keeps the old cache.
+- Claude's push access needs the Claude GitHub App *installed* on chooch530 with this repo selected. Being *authorized* is not enough.
 
 ## Commands
 - `npm test` runs all unit tests (Node 18+).
 - `python3 -m http.server 8080` serves locally. ES modules don't load from `file://`.
+- Layout check: play rounds at L1–L3 in headless Chrome at 375×667, 393×852, 852×393, 744×1133, 810×1010, 1180×820 and 1024×1366. Assert no screen/equation overflow, no off-screen buttons, and no answer buttons under 80px.
 
 ## Conventions
 - Logic must stay DOM-free and take an `rng` so tests are deterministic.

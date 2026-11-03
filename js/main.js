@@ -6,6 +6,7 @@ import * as splash from './ui/splash.js';
 import * as kidSelect from './ui/kidSelect.js';
 import * as home from './ui/home.js';
 import * as play from './ui/play.js';
+import * as levelSelect from './ui/levelSelect.js';
 import * as reward from './ui/reward.js';
 
 const SCREENS = {
@@ -13,6 +14,7 @@ const SCREENS = {
   kids: kidSelect.render,
   addKid: kidSelect.renderAddKid,
   home: home.render,
+  levels: levelSelect.render,
   play: play.render,
   reward: reward.render,
 };

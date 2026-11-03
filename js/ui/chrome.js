@@ -53,8 +53,8 @@ export function homeButton(app, target = 'home') {
   );
 }
 
-export function topbar(app, { left = [], right = [] } = {}) {
-  return h('div', { class: 'topbar' }, ...left, h('div', { class: 'spacer' }), ...right, replayButton(), muteButton(app));
+export function topbar(app, { left = [], right = [], center = null } = {}) {
+  return h('div', { class: 'topbar' }, ...left, h('div', { class: 'spacer' }, center), ...right, replayButton(), muteButton(app));
 }
 
 /**

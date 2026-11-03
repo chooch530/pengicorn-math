@@ -6,7 +6,7 @@ import { makeChoices } from './distractors.js';
 import { createDifficulty, recordResult } from './difficulty.js';
 import { starsForRound } from './scoring.js';
 
-export function createRound({ mode, level, band = 0, rng, objectKinds }) {
+export function createRound({ mode, level, band = 0, rng, objectKinds, avoidIds = [] }) {
   const cfg = levelConfig(mode, level);
   return {
     mode,
@@ -16,6 +16,7 @@ export function createRound({ mode, level, band = 0, rng, objectKinds }) {
     maxAnswer: cfg.maxAnswer,
     difficulty: createDifficulty(band, cfg.bands.length),
     usedIds: new Set(),
+    avoidIds: new Set(avoidIds),
     index: -1,
     problem: null,
     choices: [],
@@ -41,6 +42,7 @@ export function nextInRound(r) {
     usedIds: r.usedIds,
     rng: r.rng,
     objectKinds: r.objectKinds,
+    avoidIds: r.avoidIds,
   });
   r.usedIds.add(p.id);
   r.problem = p;

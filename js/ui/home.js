@@ -17,7 +17,7 @@ export function render(app) {
       'aria-label': 'Penguin Island',
       onclick: () => {
         sfx.tap();
-        app.go('play', { mode: 'add' });
+        app.go('levels', { mode: 'add' });
       },
     },
     art.character('penguin', 'blue', { className: 'float' })
@@ -53,20 +53,21 @@ export function render(app) {
       },
     },
     art.character(kid.avatar, kid.color),
-    kid.name
+    h('span', { class: 'kid-name' }, kid.name)
   );
 
   const el = h(
     'div',
     { class: 'screen' },
-    topbar(app, { left: [kidChip, starCount(kid.totalStars)], right: [holdButton(() => openParentGate(app))] }),
+    topbar(app, { left: [kidChip, starCount(kid.totalStars)] }),
     h(
       'div',
       { class: 'map' },
       island,
       locked('place-meadow', 'unicorn', 'rainbow', 'Unicorn Meadow'),
       locked('place-castle', 'unicorn', 'purple', 'Rainbow Castle')
-    )
+    ),
+    h('div', { class: 'corner-gear' }, holdButton(() => openParentGate(app)))
   );
 
   return {

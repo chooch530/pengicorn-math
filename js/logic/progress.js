@@ -19,18 +19,57 @@ export function newKid({ name, avatar, color }) {
     avatar: avatar === 'unicorn' ? 'unicorn' : 'penguin',
     color: color || 'blue',
     totalStars: 0,
-    modes: { add: { level: 1, band: 0, strongRounds: 0, bestStars: {} } },
+    modes: { add: newModeProgress() },
     stats: { add: { problems: 0, firstTry: 0, missed: {} } },
     friends: [],
   };
 }
 
+export function newModeProgress() {
+  // level = highest unlocked level; bands = current difficulty band per level;
+  // recent = problem ids from the last round (avoided next round when possible).
+  return { level: 1, bands: { 1: 0 }, strongRounds: 0, bestStars: {}, recent: [] };
+}
+
+/** Bring older saved kids up to the current shape. Safe to run on every load. */
+export function normalizeKid(kid) {
+  const k = structuredCloneSafe(kid);
+  k.modes = k.modes || {};
+  k.stats = k.stats || {};
+  for (const mode of Object.keys(LEVELS)) {
+    const mp = { ...newModeProgress(), ...(k.modes[mode] || {}) };
+    if (mp.band !== undefined) {
+      // v1.0 stored a single band for the current level.
+      mp.bands = { ...mp.bands, [mp.level]: mp.band };
+      delete mp.band;
+    }
+    k.modes[mode] = mp;
+    k.stats[mode] = { problems: 0, firstTry: 0, missed: {}, ...(k.stats[mode] || {}) };
+  }
+  return k;
+}
+
+/** Band to start a level on. */
+export function bandFor(kid, mode, level) {
+  return kid.modes[mode].bands?.[level] ?? 0;
+}
+
+/** Parent switch: open every level in a mode. */
+export function unlockAll(kid, mode) {
+  const k = structuredCloneSafe(kid);
+  const maxLevel = Math.max(...Object.keys(LEVELS[mode]).map(Number));
+  k.modes[mode].level = maxLevel;
+  k.modes[mode].strongRounds = 0;
+  return k;
+}
+
 /** Pure: fold a finished round into a kid record. Returns { kid, leveledUp }. */
 export function recordRound(kid, mode, level, summary) {
-  const k = structuredCloneSafe(kid);
+  const k = normalizeKid(kid);
   const mp = k.modes[mode];
   const maxLevel = Math.max(...Object.keys(LEVELS[mode]).map(Number));
   const updated = applyRound(mp, {
+    played: level,
     stars: summary.stars,
     endBand: summary.endBand,
     numBands: summary.numBands,
@@ -39,6 +78,7 @@ export function recordRound(kid, mode, level, summary) {
   const leveledUp = updated.leveledUp;
   delete updated.leveledUp;
   updated.bestStars = { ...mp.bestStars, [level]: Math.max(mp.bestStars?.[level] || 0, summary.stars) };
+  updated.recent = summary.log.map((e) => e.id);
   k.modes[mode] = updated;
   k.totalStars += summary.stars;
 
@@ -77,7 +117,8 @@ export function loadStore(storage = globalThis.localStorage) {
     const raw = storage?.getItem(STORAGE_KEY);
     if (!raw) return emptyStore();
     const s = JSON.parse(raw);
-    return isValidStore(s) ? { ...emptyStore(), ...s, settings: { ...emptyStore().settings, ...s.settings } } : emptyStore();
+    if (!isValidStore(s)) return emptyStore();
+    return { ...emptyStore(), ...s, kids: s.kids.map(normalizeKid), settings: { ...emptyStore().settings, ...s.settings } };
   } catch {
     return emptyStore();
   }
@@ -101,5 +142,5 @@ export function exportStore(store) {
 export function importStore(code) {
   const s = JSON.parse(decodeURIComponent(escape(atob(String(code).trim()))));
   if (!isValidStore(s)) throw new Error('Not a valid backup');
-  return s;
+  return { ...s, kids: s.kids.map(normalizeKid) };
 }
