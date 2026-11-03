@@ -22,6 +22,7 @@ export function newKid({ name, avatar, color }) {
     modes: { add: newModeProgress() },
     stats: { add: { problems: 0, firstTry: 0, missed: {} } },
     friends: [],
+    prefs: { pictures: false },
   };
 }
 
@@ -36,6 +37,7 @@ export function normalizeKid(kid) {
   const k = structuredCloneSafe(kid);
   k.modes = k.modes || {};
   k.stats = k.stats || {};
+  k.prefs = { pictures: false, ...(k.prefs || {}) };
   for (const mode of Object.keys(LEVELS)) {
     const mp = { ...newModeProgress(), ...(k.modes[mode] || {}) };
     if (mp.band !== undefined) {
@@ -52,6 +54,13 @@ export function normalizeKid(kid) {
 /** Band to start a level on. */
 export function bandFor(kid, mode, level) {
   return kid.modes[mode].bands?.[level] ?? 0;
+}
+
+/** Parent switch: show counting pictures with every problem (easier) or numbers only. */
+export function setPictures(kid, on) {
+  const k = structuredCloneSafe(kid);
+  k.prefs = { ...(k.prefs || {}), pictures: !!on };
+  return k;
 }
 
 /** Parent switch: open every level in a mode. */

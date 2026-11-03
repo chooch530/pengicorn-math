@@ -18,13 +18,18 @@ export function questionText(p, hero = 'Pip') {
   return `${story} How many ${w.many} now?`;
 }
 
+/** Short question for numbers-only mode (no story about fish the kid can't see). */
+export function numberQuestionText(p) {
+  return `What is ${p.a} plus ${p.b}?`;
+}
+
 export function equationText(p) {
   return `${p.a} plus ${p.b} is ${p.answer}.`;
 }
 
 export function hintText(p) {
   const w = NOUNS[p.objectKind] || NOUNS.fish;
-  return `Let's count all the ${w.many} together. Try again!`;
+  return `Let's count the ${w.many} together. Try again!`;
 }
 
 export function countingText(total) {

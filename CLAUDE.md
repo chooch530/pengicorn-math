@@ -9,13 +9,14 @@ unicorns (subtraction), Rainbow Castle (multiplication). 5–10 minute sessions.
 ## Status
 - **v1.0 (Nov 2, 2026):** Penguin Island Level 1 end to end. Splash screen, kid select/add kid, map, 10-problem round, reward screen, minimal parent screen, offline support, home-screen manifest.
 - **v1.1 (Nov 2, 2026):** Penguin Island Levels 2 (sums to 10) and 3 (sums to 20) with a level picker. Parent "Unlock all levels". Avoids repeating last round's problems. Auto-fit layout for every iPad/iPhone size, both orientations. Ten-frames for numbers above 5.
+- **v1.2 (Nov 3, 2026):** The problem always reads on one line, left to right. Numbers only by default; per-kid "Counting pictures" switch in the parent area. In numbers mode, pictures pop in as the hint after a wrong answer.
 - **Live at:** https://chooch530.github.io/pengicorn-math/ (repo chooch530/pengicorn-math, GitHub Pages from `main` root).
 - **Next:** kid testing feedback. Do NOT build Unicorn Meadow or Rainbow Castle until Calogero confirms.
 - **Not built yet:** Unicorn Meadow, Rainbow Castle, "My Friends" collection and unlockables.
 
 ## Hard rules (from the brief)
 - No reading required. Every instruction is spoken. Every screen has a replay-audio button.
-- Countable objects are shown first, with numbers alongside.
+- ~~Countable objects are shown first~~ **Changed by Calogero (v1.2):** numbers only by default; counting pictures are a per-kid parent setting and always appear as the hint after a miss.
 - Tap targets are at least 80px (we use 88px). Portrait and landscape. No keyboard for kids.
 - No ads, no tracking, no accounts, no external links, no external fonts or CDNs.
 - Wrong answers never feel like failure.
@@ -34,7 +35,7 @@ unicorns (subtraction), Rainbow Castle (multiplication). 5–10 minute sessions.
 | Level up | Unlock the next level after 2 rounds in a row of 2+ stars, finished in the top band, played on the highest unlocked level. Replaying an easier level saves its band but never unlocks. After an unlock, the reward Play button goes straight to the new level. Parent can "Unlock all levels" (Calogero's 6- and 7-year-old shouldn't grind L1). |
 | Progress shape | `kid.modes.add = { level (highest unlocked), bands: {level: band}, strongRounds, bestStars: {level: n}, recent: [ids of last round] }`. `normalizeKid()` migrates v1.0 saves (single `band`) on load. |
 | Repetition | Within a round: never repeat. Across rounds: avoid last round's problems when the band has other options (soft rule). L1 is inherently small (20 problems), which is why kids felt it repeated. |
-| Layout fit | `play.js fit()` shrinks `--obj` from 110px until the screen has no overflow. Tries a single row (A + B = ?) and a stacked layout (A on top, then "+ B = ?"), keeping whichever gives bigger objects (row wins if ≥80px). Re-fits on resize/rotation. `.group` never shrinks (flex-shrink 0). The play grid column is `minmax(0, 1fr)` so wide content can't widen the page. |
+| Layout fit | The problem is ALWAYS one row, left to right (A + B = ?); Calogero rejected the stacked layout as confusing for kids. `play.js fit()` shrinks `--obj` from 110px (floor 12px) until the row fits. Re-fits on resize/rotation and when the hint shows pictures. `.group` never shrinks (flex-shrink 0). The play grid column is `minmax(0, 1fr)` so wide content can't widen the page. |
 | Object layout | ≤5: cluster (4 = 2×2, 5 = 3+2). >5: ten-frames (rows of 5, two rows per frame, soft box per ten). |
 | Phones | Supported as a bonus (the iPad is the target). At ≤500px wide or ≤520px tall: 80px tap targets, kid name hidden in the chip. Phone landscape: Pip hidden, answers in a right-hand column. The parent gear on the map sits in the bottom-left corner, not the top bar. |
 | Distractors | Within ±2, clamped to [0, level max]. One of three shapes picked evenly (answer lowest / middle / highest), then button order shuffled. |
@@ -46,6 +47,7 @@ unicorns (subtraction), Rainbow Castle (multiplication). 5–10 minute sessions.
 | Storage | localStorage key `pengicorn.v1`, schema 1, every call in try/catch. Max 3 kids. Home-screen launch is required: Safari tabs lose data after 7 days and keep separate storage from the icon. |
 | Offline | `sw.js` cache-first. **Bump `VERSION` on every deploy** and add new files to `FILES`. `tests/sw.test.js` fails if a file is missing from `FILES`. |
 | Art swap | Screens only call `art.character(kind, variant)` / `art.object(kind)` from `js/art/registry.js`. A sprite pack is a new provider passed to `setProvider()`. Animations are CSS classes on the returned element (`.bounce`, `.dance`, `.glow`, idle blink on `.eyes`). |
+| Pictures setting | `kid.prefs.pictures` (default false, `normalizeKid` adds it to old saves). Off: big number cards, spoken "What is 2 plus 1?". On: objects with every problem plus the Pip story. Off-mode hint/reveal: `showPictures()` removes `.pics-off`, re-fits, then glows/counts as before. |
 | Story text | Hero is "Pip" the penguin. Objects alternate between fish and snowballs. Zero cases have their own sentences ("Pip has no fish…", "Pip does not catch any more"). |
 
 ## Layout
@@ -63,13 +65,13 @@ tests/                node --test; no dependencies
 
 ## Deploying
 - Commit and push to `main`; Pages redeploys in about a minute.
-- **Bump `VERSION` in `sw.js` on every deploy** (v1.1.0 is current), or the iPad keeps the old cache.
+- **Bump `VERSION` in `sw.js` on every deploy** (v1.2.0 is current), or the iPad keeps the old cache.
 - Claude's push access needs the Claude GitHub App *installed* on chooch530 with this repo selected. Being *authorized* is not enough.
 
 ## Commands
 - `npm test` runs all unit tests (Node 18+).
 - `python3 -m http.server 8080` serves locally. ES modules don't load from `file://`.
-- Layout check: play rounds at L1–L3 in headless Chrome at 375×667, 393×852, 852×393, 744×1133, 810×1010, 1180×820 and 1024×1366. Assert no screen/equation overflow, no off-screen buttons, and no answer buttons under 80px.
+- Layout check: play rounds at L1–L3 in headless Chrome at 375×667, 393×852, 852×393, 744×1133, 810×1010, 1180×820 and 1024×1366. Run both pictures off and on, including a wrong answer (the hint). Assert no screen/equation overflow, no off-screen buttons, no answer buttons under 80px, and the equation children on one row in left-to-right order.
 
 ## Conventions
 - Logic must stay DOM-free and take an `rng` so tests are deterministic.

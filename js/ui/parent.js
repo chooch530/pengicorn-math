@@ -2,7 +2,7 @@
 // math question on a number pad that 5–7 year olds can't do yet.
 import { h, icons } from './dom.js';
 import * as speech from '../audio/speech.js';
-import { accuracy, mostMissed, newKid, exportStore, importStore, unlockAll } from '../logic/progress.js';
+import { accuracy, mostMissed, newKid, exportStore, importStore, unlockAll, setPictures } from '../logic/progress.js';
 import { LEVELS } from '../logic/levels.js';
 
 function gateQuestion() {
@@ -94,6 +94,26 @@ function openParentPanel(app) {
         missed.length
           ? 'Missed most: ' + missed.map(([id, n]) => `${id.replace('+', ' + ')} (${n}×)`).join(', ')
           : 'No missed problems yet.'
+      ),
+      h(
+        'div',
+        { class: 'pref-row' },
+        h('div', {}, h('b', {}, 'Counting pictures'), h('div', { class: 'note' }, 'On = fish or snowballs shown with every problem (easier). Off = numbers only; pictures still appear as a hint after a wrong answer.')),
+        h(
+          'button',
+          {
+            class: `toggle ${kid.prefs?.pictures ? 'on' : ''}`,
+            role: 'switch',
+            'aria-checked': kid.prefs?.pictures ? 'true' : 'false',
+            'aria-label': `Counting pictures for ${kid.name}`,
+            onclick: () => {
+              app.updateKid(setPictures(kid, !kid.prefs?.pictures));
+              paint();
+            },
+          },
+          h('span', { class: 'knob' }),
+          h('span', { class: 'toggle-label' }, kid.prefs?.pictures ? 'On' : 'Off')
+        )
       ),
       h(
         'div',

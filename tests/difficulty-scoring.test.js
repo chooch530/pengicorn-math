@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createDifficulty, recordResult } from '../js/logic/difficulty.js';
 import { starsForRound, applyRound } from '../js/logic/scoring.js';
-import { newKid, normalizeKid, bandFor, unlockAll, recordRound, mostMissed, accuracy, exportStore, importStore, emptyStore, loadStore, saveStore } from '../js/logic/progress.js';
+import { newKid, normalizeKid, bandFor, unlockAll, setPictures, recordRound, mostMissed, accuracy, exportStore, importStore, emptyStore, loadStore, saveStore } from '../js/logic/progress.js';
 
 const run = (results, start = 0) => results.reduce((s, r) => recordResult(s, r), createDifficulty(start));
 
@@ -108,4 +108,15 @@ test('storage failures never throw', () => {
   assert.deepEqual(loadStore(broken), emptyStore());
   assert.equal(saveStore(emptyStore(), broken), false);
   assert.deepEqual(loadStore(undefined), emptyStore());
+});
+
+test('counting pictures default off, old saves get it off, parent can turn it on', () => {
+  const k = newKid({ name: 'A', avatar: 'penguin' });
+  assert.equal(k.prefs.pictures, false);
+  const old = { ...k };
+  delete old.prefs;
+  assert.equal(normalizeKid(old).prefs.pictures, false);
+  const on = setPictures(k, true);
+  assert.equal(on.prefs.pictures, true);
+  assert.equal(k.prefs.pictures, false, 'original not mutated');
 });

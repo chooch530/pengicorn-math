@@ -10,7 +10,7 @@ import { createRng } from '../logic/rng.js';
 import { createRound, nextInRound, answer, roundSummary } from '../logic/round.js';
 import { PLAYABLE, ROUND_SIZE } from '../logic/levels.js';
 import { recordRound, bandFor } from '../logic/progress.js';
-import { questionText, praiseText, hintText, countingText, equationText } from '../logic/words.js';
+import { questionText, numberQuestionText, praiseText, hintText, countingText, equationText } from '../logic/words.js';
 
 export function render(app, { mode = 'add', level } = {}) {
   const kid = app.kid;
@@ -21,6 +21,8 @@ export function render(app, { mode = 'add', level } = {}) {
   const open = PLAYABLE[mode].filter((lv) => lv <= mp.level);
   const lvl = open.includes(level) ? level : Math.max(...open);
   const band = bandFor(kid, mode, lvl);
+  // Pictures off (default): just numbers. Pictures still pop in as the hint after a miss.
+  const pictures = !!kid.prefs?.pictures;
 
   const rng = createRng();
   const round = createRound({
@@ -92,8 +94,8 @@ export function render(app, { mode = 'add', level } = {}) {
   }
 
   /**
-   * Size the objects so the whole problem fits on this screen.
-   * Tries a single row (A + B = ?) and a stacked layout, keeps whichever gives bigger objects.
+   * Keep the problem on ONE line, left to right (A + B = ?), like a normal math problem.
+   * Shrinks the pictures (--obj) until that line fits the screen.
    */
   function fit() {
     if (!alive || !el.isConnected) return;
@@ -101,28 +103,30 @@ export function render(app, { mode = 'add', level } = {}) {
       equation.scrollWidth <= equation.clientWidth + 1 &&
       el.scrollHeight <= el.clientHeight + 1 &&
       el.scrollWidth <= el.clientWidth + 1;
-    const tryLayout = (stacked) => {
-      equation.classList.toggle('stack', stacked);
-      let size = 110;
+    let size = 110;
+    el.style.setProperty('--obj', `${size}px`);
+    while (!fits() && size > 12) {
+      size = Math.floor(size * 0.92);
       el.style.setProperty('--obj', `${size}px`);
-      while (!fits() && size > 18) {
-        size = Math.floor(size * 0.92);
-        el.style.setProperty('--obj', `${size}px`);
-      }
-      return size;
-    };
-    const row = tryLayout(false);
-    if (row >= 80) return; // row layout is roomy enough
-    const stacked = tryLayout(true);
-    if (stacked <= row * 1.15) tryLayout(false);
+    }
+  }
+
+  /** Show the pictures (used as the hint when pictures are off). */
+  async function showPictures() {
+    if (!equation.classList.contains('pics-off')) return;
+    for (const w of objectEls) w.firstElementChild.classList.remove('arrive');
+    equation.classList.remove('pics-off');
+    equation.classList.add('pics-pop');
+    fit();
+    await wait(450);
   }
 
   function paintProblem(p) {
     objectEls = [];
     qmark = h('div', { class: 'qmark' }, '?');
+    equation.className = `equation ${pictures ? '' : 'pics-off'}`;
     equation.replaceChildren(
       group(p.a, p.objectKind, false),
-      h('div', { class: 'break' }),
       h('div', { class: 'sym' }, '+'),
       group(p.b, p.objectKind, true),
       h('div', { class: 'sym' }, '='),
@@ -136,7 +140,7 @@ export function render(app, { mode = 'add', level } = {}) {
       })
     );
     fit();
-    if (p.b > 0) setTimeout(() => alive && sfx.splash(), 400);
+    if (pictures && p.b > 0) setTimeout(() => alive && sfx.splash(), 400);
   }
 
   async function nextProblem() {
@@ -145,7 +149,7 @@ export function render(app, { mode = 'add', level } = {}) {
     if (!p) return finish();
     paintProblem(p);
     busy = false;
-    speech.speak(questionText(p));
+    speech.speak(pictures ? questionText(p) : numberQuestionText(p));
   }
 
   async function glowAll({ tags = false } = {}) {
@@ -189,7 +193,8 @@ export function render(app, { mode = 'add', level } = {}) {
 
     if (res.outcome === 'hint') {
       speech.speak(hintText(p));
-      await wait(600);
+      await showPictures();
+      await wait(300);
       await glowAll();
       busy = false;
       return;
@@ -200,7 +205,8 @@ export function render(app, { mode = 'add', level } = {}) {
       if (Number(b.textContent) === p.answer) b.classList.add('reveal');
       b.disabled = true;
     }
-    await wait(500);
+    await showPictures();
+    await wait(300);
     const counting = speech.speak(`Let's count. ${countingText(p.answer)}`, { remember: false });
     await wait(700);
     await glowAll({ tags: true });

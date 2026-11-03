@@ -576,10 +576,17 @@ button {
   min-width: 0;
 }
 
-/* Stacked: A on its own row, then "+ B = ?". Used on narrow screens with big numbers. */
-.equation .break { display: none; }
-.equation.stack { flex-wrap: wrap; align-content: center; row-gap: 10px; }
-.equation.stack .break { display: block; flex-basis: 100%; height: 0; }
+/* Numbers-only mode (default): big number cards, pictures hidden until a hint. */
+.equation.pics-off .objects { display: none; }
+.equation.pics-off .group { padding: 12px clamp(14px, 3vmin, 28px); min-width: 0; }
+.equation.pics-off .num { font-size: clamp(56px, 15vmin, 150px); }
+.equation.pics-off .sym { font-size: clamp(48px, 11vmin, 110px); }
+.equation.pics-off .qmark {
+  width: clamp(76px, 17vmin, 170px);
+  height: clamp(76px, 17vmin, 170px);
+  font-size: clamp(56px, 13vmin, 130px);
+}
+.equation.pics-pop .objects { animation: arrive 0.4s ease-out; }
 
 .group {
   background: rgba(255, 255, 255, 0.85);
@@ -1065,3 +1072,41 @@ button {
   .splash .btn-big { width: 30vmin; height: 30vmin; }
   .splash h1 { font-size: 32px; }
 }
+
+/* Parent-area on/off switch */
+.pref-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 18px;
+}
+.toggle {
+  flex-shrink: 0;
+  position: relative;
+  width: 104px;
+  height: 52px;
+  border-radius: 26px;
+  background: #d9d6e6;
+  font-weight: 800;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 14px;
+  transition: background 0.2s;
+}
+.toggle .knob {
+  position: absolute;
+  left: 5px;
+  top: 5px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: left 0.2s;
+}
+.toggle.on { background: var(--good); color: #fff; justify-content: flex-start; }
+.toggle.on .knob { left: 57px; }
