@@ -46,7 +46,7 @@ or **Words** (sight words, including the teacher's weekly printed list). 5–10 
 | Phones | Supported as a bonus (the iPad is the target). At ≤500px wide or ≤520px tall: 80px tap targets, kid name hidden in the chip. Phone landscape: Pip hidden, answers in a right-hand column. The parent gear on the map sits in the bottom-left corner, not the top bar. |
 | Distractors | Within ±2, clamped to [0, level max]. Answer rank (lowest/middle/highest) picked evenly. Middle shapes include gaps (e.g. a-2, a, a+1) so the set is often non-consecutive. Button order is shuffled and re-shuffled if sorted ascending or descending. |
 | Mute toggle | Mutes **sound effects only**, not speech. Speech is the instruction channel, and muting it makes the game unplayable for non-readers. Revisit if Calogero wants full silence. |
-| Audio unlock | The splash Play tap unlocks speech and Web Audio (iOS requirement). Every tap also calls `sfx.unlock()` in case iOS suspended the context. |
+| Audio unlock | The splash Math/Words tap unlocks speech and Web Audio (iOS requirement). Every tap also calls `sfx.unlock()` in case iOS suspended the context. |
 | Speech | Rate 0.85, pitch 1.1. Prefers Enhanced/Premium en-US voices (Ava, Samantha…). Parent can pick a voice; the choice is saved. Spoken text always comes from `logic/words.js`, never from display strings. |
 | Parent gate | Hold the gear 3s, then answer a×b (6–9 × 6–9) on a number pad. |
 | Parent screen | Per kid: first-try accuracy, problems answered, levels open, stars, top-5 missed, reset, unlock all levels, delete. Also: voice picker, backup/restore code (base64 JSON). |
@@ -71,7 +71,7 @@ js/main.js            boot + router (app object shared by screens)
 js/logic/             PURE, no DOM: rng, levels, problems, distractors, difficulty, scoring, round, progress, words (spoken text), sight (sight words)
 js/audio/             speech.js (Web Speech), sfx.js (Web Audio)
 js/art/               registry.js (the only art entry point), penguin.js, unicorn.js, objects.js
-js/ui/                dom, chrome (top bar, hold button), confetti, splash, kidSelect, modes, home (math map), levelSelect, play, wordsPlay, reward, parent, listEditor
+js/ui/                dom, chrome (top bar, hold button), confetti, splash, kidSelect, home (math map), levelSelect, play, wordsPlay, reward, parent, listEditor
 vendor/ocr/           on-device photo reading (see vendor/ocr/README.md)
 tests/                node --test; no dependencies
 ```
