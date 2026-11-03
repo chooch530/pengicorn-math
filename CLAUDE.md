@@ -1,18 +1,21 @@
-# CLAUDE.md — Pengicorn Math
+# CLAUDE.md — Pengicorn (math + sight words)
 
 Read this before changing anything. Update it whenever we make a decision.
 
 ## What this is
-iPad Safari math game for kids 5–7 (Calogero's two kids, 6 and 7). Penguins (addition),
-unicorns (subtraction), Rainbow Castle (multiplication). 5–10 minute sessions. Must feel like a game.
+iPad Safari learning game for kids 5–7 (Calogero's kids). After picking a player, kids choose
+**Math** (Penguin Island addition; later Unicorn Meadow subtraction, Rainbow Castle multiplication)
+or **Words** (sight words, including the teacher's weekly printed list). 5–10 minute sessions. Must feel like a game.
 
 ## Status
 - **v1.0 (Nov 2, 2026):** Penguin Island Level 1 end to end. Splash screen, kid select/add kid, map, 10-problem round, reward screen, minimal parent screen, offline support, home-screen manifest.
 - **v1.1 (Nov 2, 2026):** Penguin Island Levels 2 (sums to 10) and 3 (sums to 20) with a level picker. Parent "Unlock all levels". Avoids repeating last round's problems. Auto-fit layout for every iPad/iPhone size, both orientations. Ten-frames for numbers above 5.
 - **v1.2 (Nov 3, 2026):** The problem always reads on one line, left to right. Numbers only by default; per-kid "Counting pictures" switch in the parent area. In numbers mode, pictures pop in as the hint after a wrong answer.
 - **v1.3 (Nov 3, 2026):** Mixed problems. Bands share the level max (only the floor rises), answers are picked evenly across sums, no back-to-back same answer, first number or flipped pair, and answer buttons are never sorted and are often non-consecutive.
+- **v1.4 (Nov 3, 2026):** Words mode. Math/Words picker after player select. Sight-word rounds with look-alike choices. Built-in Dolch lists. Parent area: per-kid word list, word stats, and "Add teacher list" from a photo (on-device OCR) or typed/pasted words with an editable check step. Parent gear made easier to see.
 - **Live at:** https://chooch530.github.io/pengicorn-math/ (repo chooch530/pengicorn-math, GitHub Pages from `main` root).
-- **Next:** kid testing feedback. Do NOT build Unicorn Meadow or Rainbow Castle until Calogero confirms.
+- **Next:** kid testing feedback on Words mode. Do NOT build Unicorn Meadow or Rainbow Castle until Calogero confirms.
+- **Ideas Calogero has seen, not approved yet:** My Friends collection, kid's own character as the math hero, fish flying to the hero plus streak celebrations, soft background music.
 - **Not built yet:** Unicorn Meadow, Rainbow Castle, "My Friends" collection and unlockables.
 
 ## Hard rules (from the brief)
@@ -50,6 +53,12 @@ unicorns (subtraction), Rainbow Castle (multiplication). 5–10 minute sessions.
 | Offline | `sw.js` cache-first. **Bump `VERSION` on every deploy** and add new files to `FILES`. `tests/sw.test.js` fails if a file is missing from `FILES`. |
 | Art swap | Screens only call `art.character(kind, variant)` / `art.object(kind)` from `js/art/registry.js`. A sprite pack is a new provider passed to `setProvider()`. Animations are CSS classes on the returned element (`.bounce`, `.dance`, `.glow`, idle blink on `.eyes`). |
 | Pictures setting | `kid.prefs.pictures` (default false, `normalizeKid` adds it to old saves). Off: big number cards, spoken "What is 2 plus 1?". On: objects with every problem plus the Pip story. Off-mode hint/reveal: `showPictures()` removes `.pics-off`, re-fits, then glows/counts as before. |
+| Navigation | splash → kids → **modes** (Math / Words) → Math: home (map) → levels → play; Words: words (play). Home buttons go one step back up this tree. The parent gear (hold 3s) is on kids (top-left), modes and map (bottom-left). |
+| Words round | `logic/sight.js`, same shape as `round.js`: 10 words, hint on 1st miss (re-say the word), reveal on 2nd ("This word says ___"), stars and adaptive bands reuse `difficulty.js`/`scoring.js`. Prompt "Find the word: ___." A big blue speaker button says just the word. The kid's own character is the hero. Meadow theme. |
+| Word choices | 2 look-alikes by `lookAlikeScore` (edit distance, anagram bonus for was/saw, same first/last letter, length). Prefer the kid's list (−1.2), topped up from all Dolch words for short lists. Band 0 = random 2 of the closest 8, band 1 = of 5, band 2 = always the closest + 1 of the next 3. |
+| Word order | `wordQueue`: every word before any repeats, last round's words go to the back, never the same word twice in a row. Rounds are always 10, so lists of any size work. |
+| Word lists | Built-in Dolch Pre-primer (40), Primer (52), Grade 1 (41). Family lists live in `store.lists` [{id, name, words, created}] (included in the backup code). `kid.modes.words = {list, band, recent, bestStars}`; `activeListId`: the kid's chosen list, else the newest family list, else Pre-primer. `stats.words` tracks missed words. Words are lowercase except "I". |
+| Teacher list photo | `ui/listEditor.js` → `vendor/ocr/ocr-worker.js` (our worker) runs Tesseract 5 WASM from tesseract.js-core 5.1.1 (SIMD build with a non-SIMD fallback) plus `eng.traineddata` (tessdata_fast). Vendored because npm/CDN aren't allowed; ~12 MB, loaded only when a photo is chosen, NOT in the offline cache. The image is downscaled to 2000px, grayscaled and contrast-boosted on a canvas first. `parseWordList` cleans the output: drops numbering, header words (sight, words, week, name…) and 1–2 letter noise not in `SHORT_WORDS`. The parent always reviews editable chips before saving. |
 | Story text | Hero is "Pip" the penguin. Objects alternate between fish and snowballs. Zero cases have their own sentences ("Pip has no fish…", "Pip does not catch any more"). |
 
 ## Layout
@@ -58,21 +67,23 @@ index.html, manifest.webmanifest, sw.js, package.json (tests only)
 css/styles.css
 icons/ (generated by tools/make-icons.mjs from the in-code SVGs)
 js/main.js            boot + router (app object shared by screens)
-js/logic/             PURE, no DOM: rng, levels, problems, distractors, difficulty, scoring, round, progress, words
+js/logic/             PURE, no DOM: rng, levels, problems, distractors, difficulty, scoring, round, progress, words (spoken text), sight (sight words)
 js/audio/             speech.js (Web Speech), sfx.js (Web Audio)
 js/art/               registry.js (the only art entry point), penguin.js, unicorn.js, objects.js
-js/ui/                dom, chrome (top bar, hold button), confetti, splash, kidSelect, home, levelSelect, play, reward, parent
+js/ui/                dom, chrome (top bar, hold button), confetti, splash, kidSelect, modes, home (math map), levelSelect, play, wordsPlay, reward, parent, listEditor
+vendor/ocr/           on-device photo reading (see vendor/ocr/README.md)
 tests/                node --test; no dependencies
 ```
 
 ## Deploying
 - Commit and push to `main`; Pages redeploys in about a minute.
-- **Bump `VERSION` in `sw.js` on every deploy** (v1.3.0 is current), or the iPad keeps the old cache.
+- **Bump `VERSION` in `sw.js` on every deploy** (v1.4.0 is current), or the iPad keeps the old cache.
 - Claude's push access needs the Claude GitHub App *installed* on chooch530 with this repo selected. Being *authorized* is not enough.
 
 ## Commands
 - `npm test` runs all unit tests (Node 18+).
 - `python3 -m http.server 8080` serves locally. ES modules don't load from `file://`.
+- Words check: play a words round (with a hint and a reveal) on the same sizes; no word card text may be cut off. Test a photo list by uploading a generated JPEG of a printed list into the list editor's file input.
 - Layout check: play rounds at L1–L3 in headless Chrome at 375×667, 393×852, 852×393, 744×1133, 810×1010, 1180×820 and 1024×1366. Run both pictures off and on, including a wrong answer (the hint). Assert no screen/equation overflow, no off-screen buttons, no answer buttons under 80px, and the equation children on one row in left-to-right order.
 
 ## Conventions

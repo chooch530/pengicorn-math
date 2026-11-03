@@ -9,11 +9,12 @@ export const MAX_KIDS = 3;
 const SCHEMA = 1;
 
 export function emptyStore() {
-  return { schema: SCHEMA, kids: [], settings: { muted: false, voiceURI: null } };
+  // lists = the family's saved sight-word lists (e.g. from the teacher), shared by all kids.
+  return { schema: SCHEMA, kids: [], lists: [], settings: { muted: false, voiceURI: null } };
 }
 
 export function newKid({ name, avatar, color }) {
-  return {
+  return normalizeKid({
     id: `k${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`,
     name: String(name || '').trim().slice(0, 16) || 'Player',
     avatar: avatar === 'unicorn' ? 'unicorn' : 'penguin',
@@ -23,7 +24,7 @@ export function newKid({ name, avatar, color }) {
     stats: { add: { problems: 0, firstTry: 0, missed: {} } },
     friends: [],
     prefs: { pictures: false },
-  };
+  });
 }
 
 export function newModeProgress() {
@@ -48,6 +49,9 @@ export function normalizeKid(kid) {
     k.modes[mode] = mp;
     k.stats[mode] = { problems: 0, firstTry: 0, missed: {}, ...(k.stats[mode] || {}) };
   }
+  // Sight words. list = id of the list this kid practices (null = automatic, see activeListId).
+  k.modes.words = { list: null, band: 0, recent: [], bestStars: {}, ...(k.modes.words || {}) };
+  k.stats.words = { problems: 0, firstTry: 0, missed: {}, ...(k.stats.words || {}) };
   return k;
 }
 
@@ -61,6 +65,48 @@ export function setPictures(kid, on) {
   const k = structuredCloneSafe(kid);
   k.prefs = { ...(k.prefs || {}), pictures: !!on };
   return k;
+}
+
+/** Which word list a kid practices: their chosen one if it still exists, else the newest family list, else Pre-primer. */
+export function activeListId(kid, lists = []) {
+  const chosen = kid.modes?.words?.list;
+  if (chosen && (lists.some((l) => l.id === chosen) || chosen.startsWith('dolch-'))) return chosen;
+  return lists.length ? lists[lists.length - 1].id : 'dolch-pre';
+}
+
+export function setWordList(kid, listId) {
+  const k = normalizeKid(kid);
+  k.modes.words.list = listId;
+  k.modes.words.band = 0;
+  k.modes.words.recent = [];
+  return k;
+}
+
+/** Pure: fold a finished sight-word round into a kid record. */
+export function recordWordRound(kid, listId, summary) {
+  const k = normalizeKid(kid);
+  const mw = k.modes.words;
+  mw.band = summary.endBand;
+  mw.recent = summary.log.map((e) => e.id);
+  mw.bestStars = { ...mw.bestStars, [listId]: Math.max(mw.bestStars[listId] || 0, summary.stars) };
+  k.totalStars += summary.stars;
+  const st = k.stats.words;
+  for (const e of summary.log) {
+    st.problems++;
+    if (e.firstTry) st.firstTry++;
+    else st.missed[e.id] = (st.missed[e.id] || 0) + 1;
+  }
+  return k;
+}
+
+let listCounter = 0;
+export function newList(name, words) {
+  return {
+    id: `list${Date.now().toString(36)}${listCounter++}`,
+    name: String(name || '').trim().slice(0, 30) || 'Class list',
+    words,
+    created: new Date().toISOString().slice(0, 10),
+  };
 }
 
 /** Parent switch: open every level in a mode. */
@@ -127,7 +173,7 @@ export function loadStore(storage = globalThis.localStorage) {
     if (!raw) return emptyStore();
     const s = JSON.parse(raw);
     if (!isValidStore(s)) return emptyStore();
-    return { ...emptyStore(), ...s, kids: s.kids.map(normalizeKid), settings: { ...emptyStore().settings, ...s.settings } };
+    return { ...emptyStore(), ...s, kids: s.kids.map(normalizeKid), lists: Array.isArray(s.lists) ? s.lists : [], settings: { ...emptyStore().settings, ...s.settings } };
   } catch {
     return emptyStore();
   }
@@ -151,5 +197,5 @@ export function exportStore(store) {
 export function importStore(code) {
   const s = JSON.parse(decodeURIComponent(escape(atob(String(code).trim()))));
   if (!isValidStore(s)) throw new Error('Not a valid backup');
-  return { ...s, kids: s.kids.map(normalizeKid) };
+  return { ...s, kids: s.kids.map(normalizeKid), lists: Array.isArray(s.lists) ? s.lists : [] };
 }

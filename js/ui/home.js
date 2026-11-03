@@ -1,7 +1,7 @@
 // The map: Penguin Island is open; the other places are shown locked ("being built").
 import { h, icons, animate } from './dom.js';
 import { art } from '../art/registry.js';
-import { topbar, starCount, holdButton } from './chrome.js';
+import { topbar, starCount, holdButton, homeButton } from './chrome.js';
 import { sfx } from '../audio/sfx.js';
 import * as speech from '../audio/speech.js';
 import { openParentGate } from './parent.js';
@@ -59,7 +59,7 @@ export function render(app) {
   const el = h(
     'div',
     { class: 'screen' },
-    topbar(app, { left: [kidChip, starCount(kid.totalStars)] }),
+    topbar(app, { left: [homeButton(app, 'modes'), kidChip, starCount(kid.totalStars)] }),
     h(
       'div',
       { class: 'map' },

@@ -7,6 +7,8 @@ import * as kidSelect from './ui/kidSelect.js';
 import * as home from './ui/home.js';
 import * as play from './ui/play.js';
 import * as levelSelect from './ui/levelSelect.js';
+import * as modes from './ui/modes.js';
+import * as wordsPlay from './ui/wordsPlay.js';
 import * as reward from './ui/reward.js';
 
 const SCREENS = {
@@ -15,6 +17,8 @@ const SCREENS = {
   addKid: kidSelect.renderAddKid,
   home: home.render,
   levels: levelSelect.render,
+  modes: modes.render,
+  words: wordsPlay.render,
   play: play.render,
   reward: reward.render,
 };
@@ -70,7 +74,7 @@ const app = {
   },
   /** Re-render the current screen (e.g. after parent changes). */
   refresh() {
-    if (currentName === 'play' || currentName === 'reward') return;
+    if (['play', 'reward', 'words'].includes(currentName)) return;
     if (!this.kid && currentName === 'home') return this.go('kids');
     if (!this.store.kids.length && currentName !== 'splash') return this.go('addKid');
     this.go(currentName, currentParams);

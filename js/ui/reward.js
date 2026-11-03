@@ -7,19 +7,20 @@ import { sfx } from '../audio/sfx.js';
 import * as speech from '../audio/speech.js';
 import { confetti } from './confetti.js';
 
-export function render(app, { summary, leveledUp, mode = 'add', level = 1, newLevel = level }) {
+export function render(app, { summary, leveledUp, mode = 'add', level = 1, newLevel = level, homeTarget = 'levels', playTarget = 'play' }) {
   // After unlocking a level, the big Play button goes straight to the new one.
   const nextLevel = leveledUp ? newLevel : level;
   const kid = app.kid;
   const slots = [0, 1, 2].map(() => h('div', { class: 'slot' }, svg(starSVG())));
-  const pip = art.character('penguin', 'blue', { className: 'dance' });
+  // Math: Pip dances. Words: the kid's own character dances.
+  const pip = mode === 'words' ? art.character(kid.avatar, kid.color, { className: 'dance' }) : art.character('penguin', 'blue', { className: 'dance' });
   let alive = true;
   let stopConfetti = () => {};
 
   const el = h(
     'div',
     { class: 'screen reward' },
-    topbar(app, { left: [homeButton(app, 'levels'), starCount(kid.totalStars)] }),
+    topbar(app, { left: [homeButton(app, homeTarget), starCount(kid.totalStars)] }),
     h('div', { class: 'big-stars' }, slots),
     h('div', { class: 'pip-dance' }, pip),
     h(
@@ -33,7 +34,7 @@ export function render(app, { summary, leveledUp, mode = 'add', level = 1, newLe
           'aria-label': 'Play again',
           onclick: () => {
             sfx.tap();
-            app.go('play', { mode, level: nextLevel });
+            app.go(playTarget, { mode, level: nextLevel });
           },
         },
         icons.play()

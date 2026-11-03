@@ -42,3 +42,23 @@ const PRAISE = ['Yes!', 'Great job!', 'You got it!', 'Super!', 'Hooray!', 'Aweso
 export function praiseText(p, rng) {
   return `${rng.pick(PRAISE)} ${equationText(p)}`;
 }
+
+// ---- Sight words (spoken lines) ----
+
+export function findWordText(w) {
+  return `Find the word: ${w}.`;
+}
+
+export function wordHintText(w) {
+  return `Listen again. ${w}. Try again!`;
+}
+
+export function wordRevealText(w) {
+  return `This word says ${w}.`;
+}
+
+const WORD_PRAISE = ['Yes!', 'Great reading!', 'You got it!', 'Super!', 'Nice!', 'Awesome!'];
+
+export function wordPraiseText(w, rng) {
+  return `${rng.pick(WORD_PRAISE)} That says ${w}.`;
+}

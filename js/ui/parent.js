@@ -2,7 +2,9 @@
 // math question on a number pad that 5–7 year olds can't do yet.
 import { h, icons } from './dom.js';
 import * as speech from '../audio/speech.js';
-import { accuracy, mostMissed, newKid, exportStore, importStore, unlockAll, setPictures } from '../logic/progress.js';
+import { accuracy, mostMissed, newKid, exportStore, importStore, unlockAll, setPictures, activeListId, setWordList } from '../logic/progress.js';
+import { BUILTIN_LISTS } from '../logic/sight.js';
+import { openListEditor } from './listEditor.js';
 import { LEVELS } from '../logic/levels.js';
 
 function gateQuestion() {
@@ -115,6 +117,7 @@ function openParentPanel(app) {
           h('span', { class: 'toggle-label' }, kid.prefs?.pictures ? 'On' : 'Off')
         )
       ),
+      wordsReport(kid),
       h(
         'div',
         { class: 'row-gap' },
@@ -162,6 +165,86 @@ function openParentPanel(app) {
     );
   }
 
+  function wordsReport(kid) {
+    const acc = accuracy(kid, 'words');
+    const missed = mostMissed(kid, 'words', 8);
+    const current = activeListId(kid, app.store.lists);
+    const options = [
+      ...app.store.lists.map((l) => ({ id: l.id, label: `${l.name} (${l.words.length} words)` })),
+      ...BUILTIN_LISTS.map((l) => ({ id: l.id, label: `Dolch ${l.name} (${l.words.length} words)` })),
+    ];
+    const sel = h(
+      'select',
+      {
+        'aria-label': `Sight word list for ${kid.name}`,
+        onchange: () => {
+          app.updateKid(setWordList(kid, sel.value));
+          paint();
+        },
+      },
+      options.map((o) => h('option', { value: o.id, selected: o.id === current }, o.label))
+    );
+    return h(
+      'div',
+      { class: 'words-report' },
+      h('div', { class: 'pref-row' }, h('b', {}, 'Sight word list'), sel),
+      h(
+        'p',
+        {},
+        `Words: ${acc === null ? 'not played yet' : `${acc}% first try, ${kid.stats.words.problems} words read`}. ` +
+          (missed.length ? 'Missed most: ' + missed.map(([w, n]) => `${w} (${n}×)`).join(', ') : '')
+      )
+    );
+  }
+
+  function listsSection() {
+    const lists = app.store.lists;
+    return h(
+      'div',
+      {},
+      h('h3', {}, 'Sight word lists'),
+      lists.length
+        ? h(
+            'div',
+            {},
+            lists
+              .slice()
+              .reverse()
+              .map((l) =>
+                h(
+                  'div',
+                  { class: 'list-item' },
+                  h('div', {}, h('b', {}, l.name), h('div', { class: 'note' }, `${l.words.length} words · ${l.words.slice(0, 12).join(', ')}${l.words.length > 12 ? '…' : ''}`)),
+                  h(
+                    'div',
+                    { class: 'row-gap', style: { marginTop: 0 } },
+                    h('button', { class: 'btn small-btn', onclick: () => openListEditor(app, { list: l, onDone: paint }) }, 'Edit'),
+                    h(
+                      'button',
+                      {
+                        class: 'btn small-btn danger',
+                        onclick: () => {
+                          if (!confirm(`Delete the list "${l.name}"?`)) return;
+                          app.store.lists = app.store.lists.filter((x) => x.id !== l.id);
+                          app.save();
+                          paint();
+                        },
+                      },
+                      'Delete'
+                    )
+                  )
+                )
+              )
+          )
+        : h('p', { class: 'note' }, 'No teacher lists yet. Kids practice the Dolch lists until you add one. A new list becomes every kid\'s list unless you picked one for them.'),
+      h(
+        'div',
+        { class: 'row-gap' },
+        h('button', { class: 'btn small-btn primary-small', onclick: () => openListEditor(app, { onDone: paint }) }, '+ Add teacher list')
+      )
+    );
+  }
+
   function voicePicker() {
     const voices = speech.englishVoices();
     if (!voices.length) return h('p', { class: 'note' }, 'No English voices found on this device.');
@@ -172,7 +255,7 @@ function openParentPanel(app) {
           speech.setVoice(sel.value);
           app.store.settings.voiceURI = sel.value;
           app.save();
-          speech.speak('Hi! I will read the math to you.', { remember: false });
+          speech.speak('Hi! I will read to you.', { remember: false });
         },
       },
       voices.map((v) =>
@@ -200,6 +283,7 @@ function openParentPanel(app) {
         h('button', { class: 'btn small-btn', onclick: close }, 'Done')
       ),
       ...(app.store.kids.length ? app.store.kids.map(kidReport) : [h('p', {}, 'No players yet.')]),
+      listsSection(),
       h('h3', {}, 'Voice'),
       voicePicker(),
       h('h3', {}, 'Backup'),

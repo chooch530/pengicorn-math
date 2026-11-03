@@ -19,7 +19,7 @@ export function render(app) {
         onclick: (e) => {
           sfx.tap();
           app.setKid(k.id);
-          app.go('home');
+          app.go('modes');
         },
       },
       art.character(k.avatar, k.color),
@@ -121,7 +121,7 @@ export function renderAddKid(app) {
     app.save();
     app.setKid(kid.id);
     sfx.correct();
-    app.go('home');
+    app.go('modes');
   };
 
   const el = h(
