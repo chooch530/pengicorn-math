@@ -122,3 +122,31 @@ test('level 3 problems can reach 20 and stay non-negative', () => {
   }
   assert.ok(answers.has(20));
 });
+
+test('rounds are mixed: no back-to-back same answer or first number, answers not climbing in order', () => {
+  let climbing = 0;
+  for (const seed of SEEDS) {
+    for (const level of [1, 2, 3]) {
+      const r = createRound({ mode: 'add', level, band: 0, rng: createRng(seed) });
+      const seen = [];
+      while (nextInRound(r)) { seen.push(r.problem); answer(r, r.problem.answer); }
+      for (let i = 1; i < seen.length; i++) {
+        if (level > 1) {
+          assert.notEqual(seen[i].answer, seen[i - 1].answer, `L${level} seed ${seed}: same answer twice in a row`);
+          assert.notEqual(seen[i].a, seen[i - 1].a, `L${level} seed ${seed}: same first number twice in a row`);
+        }
+      }
+      const ups = seen.slice(1).filter((p, i) => p.answer > seen[i].answer).length;
+      if (ups >= 8) climbing++;
+    }
+  }
+  assert.ok(climbing < 5, `${climbing} rounds climbed in order`);
+});
+
+test('easiest band still includes the biggest sums of the level', () => {
+  for (const level of [1, 2, 3]) {
+    const [lo, hi] = LEVELS.add[level].bands[0];
+    assert.equal(hi, LEVELS.add[level].maxAnswer);
+    assert.ok(lo <= LEVELS.add[level].maxAnswer / 2 + 1);
+  }
+});

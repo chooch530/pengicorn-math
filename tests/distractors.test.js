@@ -32,3 +32,17 @@ test('right answer is not always the middle number or the same slot', () => {
   }
   for (const n of [...rank, ...slot]) assert.ok(n > 800, `skewed: rank ${rank} slot ${slot}`);
 });
+
+test('buttons are never in sorted order and are often not consecutive', () => {
+  const rng = createRng(7);
+  let gappy = 0;
+  for (let i = 0; i < 3000; i++) {
+    const c = makeChoices(rng.int(2, 18), rng, { min: 0, max: 20 });
+    const up = c[0] < c[1] && c[1] < c[2];
+    const down = c[0] > c[1] && c[1] > c[2];
+    assert.ok(!up && !down, `sorted: ${c}`);
+    const s = [...c].sort((a, b) => a - b);
+    if (s[2] - s[0] > 2) gappy++;
+  }
+  assert.ok(gappy > 700, `only ${gappy} non-consecutive sets`);
+});

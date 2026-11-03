@@ -43,6 +43,7 @@ export function nextInRound(r) {
     rng: r.rng,
     objectKinds: r.objectKinds,
     avoidIds: r.avoidIds,
+    prev: r.problem,
   });
   r.usedIds.add(p.id);
   r.problem = p;
