@@ -7,7 +7,8 @@ import { sfx } from '../audio/sfx.js';
 import * as speech from '../audio/speech.js';
 import { LEVELS, PLAYABLE } from '../logic/levels.js';
 
-export function render(app, { mode = 'add' } = {}) {
+// target: screen a level opens ('play' = Penguin Island, 'battle' = Battleship).
+export function render(app, { mode = 'add', target = 'play', homeTarget = 'home' } = {}) {
   const kid = app.kid;
   if (!kid) return app.go('kids');
   const mp = kid.modes[mode];
@@ -24,7 +25,7 @@ export function render(app, { mode = 'add' } = {}) {
         onclick: () => {
           if (open) {
             sfx.tap();
-            app.go('play', { mode, level: lv });
+            app.go(target, { mode, level: lv });
           } else {
             sfx.tryAgain();
             animate(card, 'wiggle', 500);
@@ -52,15 +53,32 @@ export function render(app, { mode = 'add' } = {}) {
   const el = h(
     'div',
     { class: 'screen levels' },
-    topbar(app, { left: [homeButton(app), starCount(kid.totalStars)] }),
-    h('div', { class: 'level-row' }, art.character('penguin', 'blue', { className: 'float level-pip' }), ...cards)
+    topbar(app, { left: [homeButton(app, homeTarget), starCount(kid.totalStars)] }),
+    h(
+      'div',
+      { class: 'level-row' },
+      target === 'battle'
+        ? (() => {
+            const s = art.vehicle('battleship');
+            s.classList.add('level-ship');
+            return s;
+          })()
+        : art.character('penguin', 'blue', { className: 'float level-pip' }),
+      ...cards
+    )
   );
 
   const openCount = levels.filter((lv) => lv <= mp.level).length;
   return {
     el,
     enter() {
-      document.body.dataset.theme = 'island';
+      document.body.dataset.theme = target === 'battle' ? 'sea' : 'island';
+      if (target === 'battle') {
+        speech.speak(
+          openCount > 1 ? 'Battleship! Pick a level. Bigger numbers are harder.' : 'Battleship! Tap level 1 to start firing!'
+        );
+        return;
+      }
       speech.speak(
         openCount > 1
           ? 'Pick a level! The bigger the number, the harder it is.'

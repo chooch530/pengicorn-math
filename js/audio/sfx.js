@@ -52,6 +52,29 @@ function tone(freq, start, dur, { type = 'sine', vol = 0.4, slideTo = null } = {
   o.stop(t + dur + 0.05);
 }
 
+let noiseBuf = null;
+function noise(start, dur, { type = 'lowpass', freq = 800, endFreq = null, vol = 0.5 } = {}) {
+  if (!ctx || muted) return;
+  if (!noiseBuf) {
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  const t = ctx.currentTime + start;
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuf;
+  const f = ctx.createBiquadFilter();
+  f.type = type;
+  f.frequency.setValueAtTime(freq, t);
+  if (endFreq) f.frequency.exponentialRampToValueAtTime(endFreq, t + dur);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(f).connect(g).connect(master);
+  src.start(t);
+  src.stop(t + dur + 0.05);
+}
+
 export const sfx = {
   tap() {
     tone(660, 0, 0.08, { type: 'triangle', vol: 0.25 });
@@ -77,6 +100,25 @@ export const sfx = {
   star(i = 0) {
     tone(880 + i * 220, 0, 0.35, { type: 'triangle', vol: 0.3 });
     tone(1320 + i * 220, 0.05, 0.3, { type: 'sine', vol: 0.15 });
+  },
+  cannon() {
+    tone(110, 0, 0.25, { type: 'sine', vol: 0.5, slideTo: 40 });
+    noise(0, 0.25, { freq: 1200, endFreq: 200, vol: 0.45 });
+  },
+  boom() {
+    tone(70, 0, 0.6, { type: 'sine', vol: 0.55, slideTo: 30 });
+    noise(0, 0.7, { freq: 900, endFreq: 120, vol: 0.6 });
+  },
+  waterSplash() {
+    noise(0, 0.5, { type: 'bandpass', freq: 2200, endFreq: 500, vol: 0.4 });
+  },
+  sink() {
+    tone(320, 0, 2.2, { type: 'triangle', vol: 0.25, slideTo: 55 });
+    for (let i = 0; i < 8; i++) tone(500 + Math.random() * 500, 0.3 + i * 0.22, 0.08, { vol: 0.12, slideTo: 900 });
+  },
+  horn() {
+    tone(196, 0, 0.6, { type: 'sawtooth', vol: 0.12 });
+    tone(147, 0, 0.6, { type: 'sawtooth', vol: 0.1 });
   },
   fanfare() {
     [523, 659, 784, 659, 784, 1047].forEach((f, i) =>

@@ -6,21 +6,26 @@
 // Display text and spoken text are always separate (screens pass plain words).
 
 const synth = globalThis.speechSynthesis;
-const RATE = 0.85;
-const PITCH = 1.1;
+// Natural settings: raising the pitch made voices sound more synthetic.
+const RATE = 0.9;
+const PITCH = 1.0;
 
-// Voices that tend to sound friendly on iPad. First match wins.
-const PREFERRED = [
-  /Ava.*(Premium|Enhanced)/i,
-  /Samantha.*(Premium|Enhanced)/i,
-  /Zoe.*(Premium|Enhanced)/i,
-  /Allison.*(Premium|Enhanced)/i,
-  /(Premium|Enhanced)/i,
-  /^Samantha/i,
-  /^Ava/i,
-  /^Karen/i,
-  /^Moira/i,
-];
+// Apple's joke/novelty voices (robotic on purpose). Never auto-picked.
+const NOVELTY = /^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Deranged|Fred|Good News|Hysterical|Jester|Junior|Kathy|Organ|Pipe Organ|Ralph|Superstar|Trinoids|Whisper|Wobble|Zarvox|Grandma|Grandpa|Eddy|Flo|Reed|Rocko|Sandy|Shelley)\b/i;
+// Friendly-sounding names, best first (used to break ties within a quality tier).
+const NICE = ['Ava', 'Zoe', 'Samantha', 'Evan', 'Nathan', 'Allison', 'Susan', 'Tom', 'Joelle', 'Noelle', 'Karen', 'Moira'];
+
+/** Higher is better: Premium > Enhanced > standard; novelty voices last. */
+export function voiceQuality(v) {
+  if (NOVELTY.test(v.name)) return -1;
+  if (/premium/i.test(v.name) || /premium/i.test(v.voiceURI)) return 3;
+  if (/enhanced/i.test(v.name) || /enhanced/i.test(v.voiceURI)) return 2;
+  return 1;
+}
+
+export function qualityLabel(v) {
+  return ['Novelty', '', 'Standard', 'Enhanced', 'Premium'][voiceQuality(v) + 1];
+}
 
 let voice = null;
 let preferredURI = null;
@@ -32,28 +37,40 @@ export function available() {
   return !!synth;
 }
 
+function score(v) {
+  const nice = NICE.findIndex((n) => v.name.startsWith(n));
+  return voiceQuality(v) * 100 + (/en[-_]US/i.test(v.lang) ? 20 : 0) + (nice >= 0 ? 15 - nice : 0);
+}
+
+/** English voices, best first. */
 export function englishVoices() {
   if (!synth) return [];
-  return synth.getVoices().filter((v) => /^en/i.test(v.lang));
+  return synth
+    .getVoices()
+    .filter((v) => /^en/i.test(v.lang))
+    .sort((a, b) => score(b) - score(a));
 }
 
 function pickVoice() {
   const voices = englishVoices();
   if (!voices.length) return;
-  if (preferredURI) {
-    const chosen = voices.find((v) => v.voiceURI === preferredURI);
-    if (chosen) return (voice = chosen);
-  }
-  const us = voices.filter((v) => /en[-_]US/i.test(v.lang));
-  for (const re of PREFERRED) {
-    const v = us.find((x) => re.test(x.name)) || voices.find((x) => re.test(x.name));
-    if (v) return (voice = v);
-  }
-  voice = us[0] || voices[0];
+  const chosen = preferredURI && voices.find((v) => v.voiceURI === preferredURI);
+  const best = voices[0];
+  // Use the parent's choice, unless a better-quality voice was downloaded after they chose.
+  voice = chosen && voiceQuality(best) <= preferredBestAtPick ? chosen : best;
 }
 
-export function setVoice(uri) {
+export function bestVoiceQuality() {
+  const v = englishVoices()[0];
+  return v ? voiceQuality(v) : 0;
+}
+
+let preferredBestAtPick = 0;
+
+/** uri = parent's choice; bestAtPick = best quality that existed when they chose it. */
+export function setVoice(uri, bestAtPick = 3) {
   preferredURI = uri || null;
+  preferredBestAtPick = bestAtPick;
   pickVoice();
 }
 

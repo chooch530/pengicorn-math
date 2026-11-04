@@ -1344,3 +1344,50 @@ body[data-theme="meadow"] {
 .splash .mode-card {
   width: min(44vw, 38vh, 340px);
 }
+
+/* ---------- Battleship ---------- */
+
+body[data-theme="sea"] {
+  --sky-top: #7fcbff;
+  --sky-bottom: #d9f1ff;
+}
+
+.mode-battle { background: linear-gradient(#bfe6ff 0 60%, #3aa0e8 60% 100%); }
+.mode-card svg:not(.char) { width: 92%; height: auto; }
+.mode-battle .mode-glyph { color: #ffd23f; font-size: clamp(28px, 5.5vmin, 60px); }
+
+/* First screen with three cards. */
+.splash .mode-card { width: min(28vw, 34vh, 300px); min-width: 140px; }
+.mode-battle svg { width: 100% !important; }
+
+.level-ship { width: min(34vmin, 260px); height: auto; }
+
+/* The sea scene takes the space Pip had; one column in every orientation. */
+.play.battle {
+  grid-template-areas: "top" "pip" "eq" "answers";
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+}
+
+.play.battle .pip-spot { display: flex; }
+
+.battle-scene {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.play.battle .pip-spot {
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  background: #2f8fd8;
+}
+
+/* Phone in landscape: scene left, answers right. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .play.battle {
+    grid-template-areas: "top top" "pip answers" "eq answers";
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+}

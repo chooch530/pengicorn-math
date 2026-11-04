@@ -16,6 +16,8 @@ const SCREENS = {
   addKid: kidSelect.renderAddKid,
   home: home.render,
   levels: levelSelect.render,
+  battleLevels: (app) => levelSelect.render(app, { mode: 'add', target: 'battle', homeTarget: 'splash' }),
+  battle: (app, params) => play.render(app, { ...params, mode: 'add', battle: true }),
   words: wordsPlay.render,
   play: play.render,
   reward: reward.render,
@@ -29,14 +31,14 @@ let currentParams = {};
 const app = {
   store: loadStore(),
   kidId: null,
-  mode: 'math', // chosen on the first screen: 'math' | 'words'
+  mode: 'math', // chosen on the first screen: 'math' | 'words' | 'battle'
 
   get kid() {
     return this.store.kids.find((k) => k.id === this.kidId) || null;
   },
   /** After a player is picked: go into the game chosen on the first screen. */
   startGame() {
-    this.go(this.mode === 'words' ? 'words' : 'home');
+    this.go({ words: 'words', battle: 'battleLevels' }[this.mode] || 'home');
   },
   setKid(id) {
     this.kidId = id;
@@ -77,7 +79,7 @@ const app = {
   },
   /** Re-render the current screen (e.g. after parent changes). */
   refresh() {
-    if (['play', 'reward', 'words'].includes(currentName)) return;
+    if (['play', 'reward', 'words', 'battle'].includes(currentName)) return;
     if (!this.kid && currentName === 'home') return this.go('kids');
     if (!this.store.kids.length && currentName !== 'splash') return this.go('addKid');
     this.go(currentName, currentParams);
@@ -85,7 +87,7 @@ const app = {
 };
 
 sfxMod.setMuted(app.store.settings.muted);
-if (app.store.settings.voiceURI) speech.setVoice(app.store.settings.voiceURI);
+if (app.store.settings.voiceURI) speech.setVoice(app.store.settings.voiceURI, app.store.settings.voiceBestAtPick ?? 1);
 
 // Any tap anywhere also re-unlocks audio (iOS can suspend it when the app is backgrounded).
 document.addEventListener('pointerdown', () => sfxMod.unlock(), { passive: true });

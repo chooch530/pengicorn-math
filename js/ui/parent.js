@@ -248,28 +248,43 @@ function openParentPanel(app) {
   function voicePicker() {
     const voices = speech.englishVoices();
     if (!voices.length) return h('p', { class: 'note' }, 'No English voices found on this device.');
+    const best = speech.bestVoiceQuality();
     const sel = h(
       'select',
       {
+        'aria-label': 'Voice',
         onchange: () => {
-          speech.setVoice(sel.value);
+          speech.setVoice(sel.value, best);
           app.store.settings.voiceURI = sel.value;
+          app.store.settings.voiceBestAtPick = best;
           app.save();
-          speech.speak('Hi! I will read to you.', { remember: false });
+          speech.speak('Hi! What is 3 plus 4? Find the word: said.', { remember: false });
         },
       },
       voices.map((v) =>
-        h('option', { value: v.voiceURI, selected: v.name === speech.currentVoiceName() }, `${v.name} (${v.lang})`)
+        h(
+          'option',
+          { value: v.voiceURI, selected: v.name === speech.currentVoiceName() },
+          `${v.name}${speech.qualityLabel(v) && speech.qualityLabel(v) !== 'Standard' ? ` · ${speech.qualityLabel(v)}` : ''} (${v.lang})`
+        )
       )
     );
+    const hasGood = best >= 2;
     return h(
       'div',
       {},
-      sel,
+      h(
+        'div',
+        { class: 'row-gap', style: { marginTop: 0, alignItems: 'center' } },
+        sel,
+        h('button', { class: 'btn small-btn', onclick: () => speech.speak('Hi! What is 3 plus 4? Find the word: said.', { remember: false }) }, 'Test voice')
+      ),
       h(
         'p',
         { class: 'note' },
-        'Robotic voice? On the iPad open Settings → Accessibility → Spoken Content → Voices → English, download an "Enhanced" or "Premium" voice (Ava or Samantha work well), then pick it here.'
+        hasGood
+          ? 'Voices are listed best first. "Premium" voices sound the most natural.'
+          : 'This iPad only has basic (robotic) voices. To get a natural one: Settings → Accessibility → Spoken Content (or Read & Speak) → Voices → English → pick Ava, Zoe or Evan → download the "Premium" version (about 200–400 MB, needs Wi-Fi). Then close and reopen the game; it switches to the new voice automatically.'
       )
     );
   }

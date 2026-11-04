@@ -10,9 +10,12 @@ import { createRng } from '../logic/rng.js';
 import { createRound, nextInRound, answer, roundSummary } from '../logic/round.js';
 import { PLAYABLE, ROUND_SIZE } from '../logic/levels.js';
 import { recordRound, bandFor } from '../logic/progress.js';
-import { questionText, numberQuestionText, praiseText, hintText, countingText, equationText } from '../logic/words.js';
+import { questionText, numberQuestionText, praiseText, hintText, countingText, equationText, battleIntroText, battleHitText, battleMissText, battleSunkText, battleEscapeText } from '../logic/words.js';
+import { createBattle, shoot, shotFor, isSunk } from '../logic/battle.js';
+import { createBattleScene } from './battleScene.js';
 
-export function render(app, { mode = 'add', level } = {}) {
+// battle=true: Battleship version. Same math round; right answers fire the cannon at the ship.
+export function render(app, { mode = 'add', level, battle = false } = {}) {
   const kid = app.kid;
   if (!kid) return app.go('kids');
 
@@ -34,7 +37,9 @@ export function render(app, { mode = 'add', level } = {}) {
     avoidIds: mp.recent || [],
   });
 
-  const pip = art.character('penguin', 'blue');
+  const scene = battle ? createBattleScene(kid) : null;
+  let fleet = battle ? createBattle(rng) : null;
+  const pip = battle ? scene.el : art.character('penguin', 'blue');
   const dots = h('div', { class: 'dots' });
   const equation = h('div', { class: 'equation' });
   const answers = h('div', { class: 'answers' });
@@ -45,8 +50,8 @@ export function render(app, { mode = 'add', level } = {}) {
 
   const el = h(
     'div',
-    { class: 'screen play' },
-    topbar(app, { left: [homeButton(app, 'levels')], center: dots }),
+    { class: `screen play${battle ? ' battle' : ''}` },
+    topbar(app, { left: [homeButton(app, battle ? 'battleLevels' : 'levels')], center: dots }),
     h('div', { class: 'pip-spot' }, pip),
     equation,
     answers
@@ -172,6 +177,22 @@ export function render(app, { mode = 'add', level } = {}) {
     const p = round.problem;
     const res = answer(round, value);
 
+    if (res.outcome === 'correct') for (const b of answers.children) b.disabled = true;
+
+    if (res.outcome === 'correct' && battle) {
+      speech.stop();
+      btn.classList.add('right');
+      qmark.textContent = String(p.answer);
+      qmark.classList.add('solved');
+      const shot = shoot(fleet, true);
+      fleet = shot.battle;
+      await scene.fire(true, shot.part);
+      await speech.speak(battleHitText(p, rng), { remember: false });
+      await wait(200);
+      if (alive) nextProblem();
+      return;
+    }
+
     if (res.outcome === 'correct') {
       speech.stop();
       sfx.correct();
@@ -215,14 +236,33 @@ export function render(app, { mode = 'add', level } = {}) {
     qmark.textContent = String(p.answer);
     qmark.classList.add('solved');
     await speech.speak(equationText(p), { remember: false });
+    if (battle && alive && shotFor(res.outcome) === false) {
+      fleet = shoot(fleet, false).battle;
+      await scene.fire(false);
+      await speech.speak(battleMissText(), { remember: false });
+    }
     await wait(400);
     if (alive) nextProblem();
   }
 
-  function finish() {
+  async function finish() {
     const summary = roundSummary(round);
     const { kid: updated, leveledUp } = recordRound(app.kid, mode, lvl, summary);
     app.updateKid(updated);
+    if (battle) {
+      const sunk = isSunk(fleet);
+      busy = true;
+      answers.replaceChildren();
+      const line = speech.speak(sunk ? battleSunkText() : battleEscapeText(fleet.hits.length), { remember: false });
+      await scene.finale(sunk);
+      await line;
+      if (!alive) return;
+      app.go('reward', {
+        summary, leveledUp, mode: 'battle', level: lvl, newLevel: updated.modes[mode].level,
+        homeTarget: 'battleLevels', playTarget: 'battle', sunk,
+      });
+      return;
+    }
     app.go('reward', { summary, leveledUp, mode, level: lvl, newLevel: updated.modes[mode].level });
   }
 
@@ -235,10 +275,12 @@ export function render(app, { mode = 'add', level } = {}) {
   return {
     el,
     enter() {
-      document.body.dataset.theme = 'island';
+      document.body.dataset.theme = battle ? 'sea' : 'island';
       addEventListener('resize', onResize);
       addEventListener('orientationchange', onResize);
-      nextProblem();
+      if (battle) {
+        speech.speak(battleIntroText(), { remember: false }).then(() => alive && nextProblem());
+      } else nextProblem();
     },
     cleanup() {
       alive = false;

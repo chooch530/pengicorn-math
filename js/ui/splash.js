@@ -29,7 +29,8 @@ export function render(app) {
       'div',
       { class: 'mode-row' },
       card('mode-math', 'Math', '1+2', art.character('penguin', 'blue', { className: 'float' }), pick('math')),
-      card('mode-words', 'Words', 'abc', unicorn, pick('words'))
+      card('mode-words', 'Words', 'abc', unicorn, pick('words')),
+      card('mode-battle', 'Battleship', 'BOOM', art.vehicle('battleship'), pick('battle'))
     )
   );
   return { el };

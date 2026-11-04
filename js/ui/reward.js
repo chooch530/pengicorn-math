@@ -13,7 +13,7 @@ export function render(app, { summary, leveledUp, mode = 'add', level = 1, newLe
   const kid = app.kid;
   const slots = [0, 1, 2].map(() => h('div', { class: 'slot' }, svg(starSVG())));
   // Math: Pip dances. Words: the kid's own character dances.
-  const pip = mode === 'words' ? art.character(kid.avatar, kid.color, { className: 'dance' }) : art.character('penguin', 'blue', { className: 'dance' });
+  const pip = mode === 'words' || mode === 'battle' ? art.character(kid.avatar, kid.color, { className: 'dance' }) : art.character('penguin', 'blue', { className: 'dance' });
   let alive = true;
   let stopConfetti = () => {};
 
@@ -34,7 +34,7 @@ export function render(app, { summary, leveledUp, mode = 'add', level = 1, newLe
           'aria-label': 'Play again',
           onclick: () => {
             sfx.tap();
-            app.go(playTarget, { mode, level: nextLevel });
+            app.go(playTarget, { mode: mode === 'battle' ? 'add' : mode, level: nextLevel });
           },
         },
         icons.play()

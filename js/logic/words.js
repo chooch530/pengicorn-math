@@ -62,3 +62,27 @@ const WORD_PRAISE = ['Yes!', 'Great reading!', 'You got it!', 'Super!', 'Nice!',
 export function wordPraiseText(w, rng) {
   return `${rng.pick(WORD_PRAISE)} That says ${w}.`;
 }
+
+// ---- Battleship (spoken lines) ----
+
+export function battleIntroText() {
+  return 'Answer the math to fire your cannon! Hit all ten parts to sink the ship!';
+}
+
+const HIT = ['Boom! Direct hit!', 'Kaboom! Got it!', 'Bullseye!', 'Boom! Nice shot!', 'Ka-pow! Hit!'];
+
+export function battleHitText(p, rng) {
+  return `${rng.pick(HIT)} ${equationText(p)}`;
+}
+
+export function battleMissText() {
+  return 'Splash! That one missed. Next shot!';
+}
+
+export function battleSunkText() {
+  return 'You sank the ship! Hooray!';
+}
+
+export function battleEscapeText(hits) {
+  return `So close! You hit it ${hits} times, and it got away. Let's sink it next time!`;
+}
