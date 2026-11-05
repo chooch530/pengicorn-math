@@ -70,3 +70,54 @@ export function playerBoatSVG() {
   <circle cx="90" cy="86" r="7" fill="#fff" stroke="#c4561a" stroke-width="3"/>
 </svg>`;
 }
+
+/**
+ * Original cartoon pirate ship for the Words battleship (side view, same 420x170 box and
+ * waterline as the battleship so the scene code works for both). 10 hittable parts:
+ * 5 hull sections, bowsprit + jib, fore mast, main mast, mizzen mast, flag.
+ */
+export function pirateShipSVG() {
+  const WOOD = '#9c6236';
+  const WOOD_D = '#6b3f1f';
+  const SAIL = '#fff6e0';
+  const hull = [
+    'M28 100 L95 100 L95 140 L60 140 Z', // 0 bow
+    'M95 100 L170 100 L170 140 L95 140 Z',
+    'M170 100 L245 100 L245 140 L170 140 Z',
+    'M245 100 L320 100 L320 140 L245 140 Z',
+    'M320 78 L398 78 L388 140 L320 140 Z', // 4 raised stern
+  ];
+  const hullParts = hull
+    .map(
+      (d, i) => `<g class="part" data-part="${i}">
+        <path d="${d}" fill="${WOOD}" stroke="${WOOD_D}" stroke-width="3" stroke-linejoin="round"/>
+        <rect x="${[60, 95, 170, 245, 320][i]}" y="${i === 4 ? 98 : 112}" width="${[35, 75, 75, 75, 70][i]}" height="5" fill="#f2c94c"/>
+        ${i > 0 && i < 4 ? `<rect x="${118 + (i - 1) * 75}" y="122" width="12" height="10" rx="2" fill="#2b1a0d"/><rect x="${140 + (i - 1) * 75}" y="122" width="12" height="10" rx="2" fill="#2b1a0d"/>` : ''}
+        ${i === 4 ? '<rect x="340" y="84" width="12" height="10" rx="2" fill="#ffd56b"/><rect x="360" y="84" width="12" height="10" rx="2" fill="#ffd56b"/>' : ''}
+      </g>`
+    )
+    .join('');
+  const mast = (i, x, top, w, stripes) => `<g class="part" data-part="${i}">
+      <rect x="${x - 3}" y="${top}" width="6" height="${100 - top}" fill="${WOOD_D}"/>
+      <path d="M${x - w / 2} ${top + 10} Q${x} ${top + 4} ${x + w / 2} ${top + 10} L${x + w / 2 - 4} ${top + 58} Q${x} ${top + 66} ${x - w / 2 + 4} ${top + 58} Z" fill="${SAIL}" stroke="#d9c49a" stroke-width="2"/>
+      ${stripes ? `<rect x="${x - w / 2 + 3}" y="${top + 28}" width="${w - 6}" height="8" fill="#d9534f"/>` : ''}
+    </g>`;
+  return `
+<svg viewBox="0 0 420 170" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  ${hullParts}
+  <g class="part" data-part="5">
+    <path d="M30 100 L2 84" stroke="${WOOD_D}" stroke-width="5" stroke-linecap="round"/>
+    <path d="M6 84 L80 40 L84 96 Z" fill="${SAIL}" stroke="#d9c49a" stroke-width="2"/>
+  </g>
+  ${mast(6, 130, 36, 64, false)}
+  ${mast(7, 215, 14, 84, true)}
+  ${mast(8, 300, 30, 60, false)}
+  <g class="part" data-part="9">
+    <rect x="213" y="2" width="4" height="14" fill="${WOOD_D}"/>
+    <rect x="217" y="2" width="34" height="22" rx="2" fill="#22252a"/>
+    <circle cx="234" cy="11" r="6" fill="#fff"/>
+    <circle cx="232" cy="10" r="1.6" fill="#22252a"/><circle cx="236.5" cy="10" r="1.6" fill="#22252a"/>
+    <path d="M226 19 L242 15 M226 15 L242 19" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+</svg>`;
+}

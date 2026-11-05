@@ -8,6 +8,7 @@ import * as home from './ui/home.js';
 import * as play from './ui/play.js';
 import * as levelSelect from './ui/levelSelect.js';
 import * as wordsPlay from './ui/wordsPlay.js';
+import * as wordsMenu from './ui/wordsMenu.js';
 import * as reward from './ui/reward.js';
 
 const SCREENS = {
@@ -18,7 +19,9 @@ const SCREENS = {
   levels: levelSelect.render,
   battleLevels: (app) => levelSelect.render(app, { mode: 'add', target: 'battle', homeTarget: 'splash' }),
   battle: (app, params) => play.render(app, { ...params, mode: 'add', battle: true }),
-  words: wordsPlay.render,
+  words: (app) => wordsPlay.render(app),
+  wordsBattle: (app) => wordsPlay.render(app, { battle: true }),
+  wordsMenu: wordsMenu.render,
   play: play.render,
   reward: reward.render,
 };
@@ -38,7 +41,7 @@ const app = {
   },
   /** After a player is picked: go into the game chosen on the first screen. */
   startGame() {
-    this.go({ words: 'words', battle: 'battleLevels' }[this.mode] || 'home');
+    this.go({ words: 'wordsMenu', battle: 'battleLevels' }[this.mode] || 'home');
   },
   setKid(id) {
     this.kidId = id;
@@ -79,7 +82,7 @@ const app = {
   },
   /** Re-render the current screen (e.g. after parent changes). */
   refresh() {
-    if (['play', 'reward', 'words', 'battle'].includes(currentName)) return;
+    if (['play', 'reward', 'words', 'battle', 'wordsBattle'].includes(currentName)) return;
     if (!this.kid && currentName === 'home') return this.go('kids');
     if (!this.store.kids.length && currentName !== 'splash') return this.go('addKid');
     this.go(currentName, currentParams);

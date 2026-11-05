@@ -86,3 +86,21 @@ export function battleSunkText() {
 export function battleEscapeText(hits) {
   return `So close! You hit it ${hits} times, and it got away. Let's sink it next time!`;
 }
+
+// ---- Pirate ship (Words battleship) ----
+
+export function pirateIntroText() {
+  return 'Ahoy! Find the right word to fire your cannon. Hit all ten parts to sink the pirate ship!';
+}
+
+export function pirateHitText(w, rng) {
+  return `${rng.pick(HIT)} That says ${w}.`;
+}
+
+export function pirateSunkText() {
+  return 'You sank the pirate ship! Hooray!';
+}
+
+export function pirateEscapeText(hits) {
+  return `So close! You hit it ${hits} times, and the pirates sailed away. Let's sink them next time!`;
+}

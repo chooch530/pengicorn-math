@@ -8,9 +8,12 @@ import * as speech from '../audio/speech.js';
 import { createRng } from '../logic/rng.js';
 import { createSightRound, nextInSightRound, answerSight, sightSummary, findList, BUILTIN_LISTS } from '../logic/sight.js';
 import { activeListId, recordWordRound } from '../logic/progress.js';
-import { findWordText, wordHintText, wordRevealText, wordPraiseText } from '../logic/words.js';
+import { findWordText, wordHintText, wordRevealText, wordPraiseText, pirateIntroText, pirateHitText, battleMissText, pirateSunkText, pirateEscapeText } from '../logic/words.js';
+import { createBattle, shoot, isSunk } from '../logic/battle.js';
+import { createBattleScene } from './battleScene.js';
 
-export function render(app) {
+// battle=true: the pirate-ship version. Right words (any try) fire the cannon; a full miss splashes.
+export function render(app, { battle = false } = {}) {
   const kid = app.kid;
   if (!kid) return app.go('kids');
 
@@ -25,7 +28,9 @@ export function render(app) {
     avoid: mw.recent || [],
   });
 
-  const hero = art.character(kid.avatar, kid.color);
+  const scene = battle ? createBattleScene(kid, { theme: 'pirate' }) : null;
+  let fleet = battle ? createBattle(rng) : null;
+  const hero = battle ? scene.el : art.character(kid.avatar, kid.color);
   const dots = h('div', { class: 'dots' });
   const cards = h('div', { class: 'word-cards' });
   const hear = h('button', { class: 'btn btn-round hear-btn', 'aria-label': 'Hear the word' }, icons.replay());
@@ -41,8 +46,8 @@ export function render(app) {
 
   const el = h(
     'div',
-    { class: 'screen words-play' },
-    topbar(app, { left: [homeButton(app, 'splash')], center: dots }),
+    { class: `screen words-play${battle ? ' battle' : ''}` },
+    topbar(app, { left: [homeButton(app, 'wordsMenu')], center: dots }),
     h('div', { class: 'words-hero' }, hero, hear),
     cards
   );
@@ -93,6 +98,20 @@ export function render(app) {
     const w = round.problem.word;
     const res = answerSight(round, value);
 
+    if (res.outcome === 'correct') for (const b of cards.children) b.disabled = true;
+
+    if (res.outcome === 'correct' && battle) {
+      speech.stop();
+      btn.classList.add('right');
+      const shot = shoot(fleet, true);
+      fleet = shot.battle;
+      await scene.fire(true, shot.part);
+      await speech.speak(pirateHitText(w, rng), { remember: false });
+      await wait(200);
+      if (alive) next();
+      return;
+    }
+
     if (res.outcome === 'correct') {
       speech.stop();
       sfx.correct();
@@ -123,15 +142,30 @@ export function render(app) {
     }
     await wait(300);
     await speech.speak(wordRevealText(w), { remember: false });
+    if (battle && alive) {
+      fleet = shoot(fleet, false).battle;
+      await scene.fire(false);
+      await speech.speak(battleMissText(), { remember: false });
+    }
     await wait(500);
     if (alive) next();
   }
 
-  function finish() {
+  async function finish() {
     const summary = sightSummary(round);
     const updated = recordWordRound(app.kid, list.id, summary);
     app.updateKid(updated);
-    app.go('reward', { summary, mode: 'words', homeTarget: 'splash', playTarget: 'words' });
+    const rewardParams = { summary, mode: 'words', homeTarget: 'wordsMenu', playTarget: battle ? 'wordsBattle' : 'words' };
+    if (battle) {
+      busy = true;
+      cards.replaceChildren();
+      const sunk = isSunk(fleet);
+      const line = speech.speak(sunk ? pirateSunkText() : pirateEscapeText(fleet.hits.length), { remember: false });
+      await scene.finale(sunk);
+      await line;
+      if (!alive) return;
+    }
+    app.go('reward', rewardParams);
   }
 
   let t;
@@ -143,9 +177,10 @@ export function render(app) {
   return {
     el,
     enter() {
-      document.body.dataset.theme = 'meadow';
+      document.body.dataset.theme = battle ? 'sunset' : 'meadow';
       addEventListener('resize', onResize);
-      next();
+      if (battle) speech.speak(pirateIntroText(), { remember: false }).then(() => alive && next());
+      else next();
     },
     cleanup() {
       alive = false;

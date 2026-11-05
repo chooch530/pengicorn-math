@@ -12,7 +12,7 @@
 import { penguinSVG, PENGUIN_VARIANTS } from './penguin.js';
 import { unicornSVG, UNICORN_VARIANTS } from './unicorn.js';
 import { fishSVG, snowballSVG, starSVG } from './objects.js';
-import { battleshipSVG, playerBoatSVG } from './battleship.js';
+import { battleshipSVG, playerBoatSVG, pirateShipSVG } from './battleship.js';
 
 function fromMarkup(markup) {
   const t = document.createElement('template');
@@ -35,7 +35,9 @@ const svgProvider = {
   },
   // Battleship pieces. A sprite pack must keep 10 elements with class "part" and data-part 0–9.
   vehicle(kind) {
-    return fromMarkup(kind === 'player-boat' ? playerBoatSVG() : battleshipSVG());
+    if (kind === 'player-boat') return fromMarkup(playerBoatSVG());
+    if (kind === 'pirate-ship') return fromMarkup(pirateShipSVG());
+    return fromMarkup(battleshipSVG());
   },
 };
 
@@ -63,7 +65,7 @@ export const art = {
   variants(kind) {
     return provider.variants(kind);
   },
-  /** 'battleship' (10 hittable parts) or 'player-boat'. */
+  /** 'battleship' or 'pirate-ship' (10 hittable parts each), or 'player-boat'. */
   vehicle(kind) {
     return provider.vehicle(kind);
   },

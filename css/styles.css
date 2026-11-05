@@ -1391,3 +1391,41 @@ body[data-theme="sea"] {
     grid-template-rows: auto minmax(0, 1fr) auto;
   }
 }
+
+/* ---------- Pirate ship (Words battleship): sunset look, distinct from the Math battleship ---------- */
+
+body[data-theme="sunset"] {
+  --sky-top: #b38fd6;
+  --sky-bottom: #ffd2b0;
+}
+
+.mode-pirate { background: linear-gradient(#6a4c93 0%, #ffb27a 62%, #24576e 62% 100%); }
+.mode-pirate .mode-glyph { color: #ffd23f; font-size: clamp(28px, 5.5vmin, 60px); }
+.mode-pirate svg { width: 100% !important; height: auto; }
+
+.words-play.battle .words-hero {
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  background: #24576e;
+}
+
+.words-play.battle .battle-scene { width: 100%; height: 100%; overflow: visible; }
+
+/* The big "hear it" button floats in the corner of the scene. */
+.words-play.battle .hear-btn {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .words-play.battle .hear-btn { width: 80px; height: 80px; }
+}
+
+/* Keep the pirate scene visible on small phones; the word font shrinks to make room. */
+.words-play.battle { grid-template-rows: auto minmax(30vh, 1fr) auto; }
+@media (orientation: landscape) and (max-height: 520px) {
+  .words-play.battle { grid-template-rows: auto minmax(34vh, 1fr) auto; }
+}

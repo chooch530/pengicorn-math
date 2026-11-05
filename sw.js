@@ -1,7 +1,7 @@
 // Service worker: caches every game file so it runs offline after the first load.
 // IMPORTANT: bump VERSION on every deploy, or iPads keep running the old cached game.
 // Add any new file to FILES.
-const VERSION = 'v1.6.0';
+const VERSION = 'v1.7.0';
 const CACHE = `pengicorn-${VERSION}`;
 
 const FILES = [
@@ -42,6 +42,7 @@ const FILES = [
   './js/logic/battle.js',
   './js/art/battleship.js',
   './js/ui/battleScene.js',
+  './js/ui/wordsMenu.js',
   './js/ui/reward.js',
   './js/ui/parent.js',
 ];

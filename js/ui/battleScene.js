@@ -32,29 +32,38 @@ function tween(ms, fn) {
 const easeIn = (t) => t * t;
 const easeOut = (t) => 1 - (1 - t) * (1 - t);
 
-export function createBattleScene(kid) {
+// Two looks so the games are easy to tell apart:
+//  'navy'   (Math):  gray battleship, daytime sky, blue sea
+//  'pirate' (Words): wooden pirate ship, sunset sky, purple-teal sea, gold coins in splashes
+const THEMES = {
+  navy: { ship: 'battleship', skyTop: '#8fd3ff', skyBottom: '#e2f5ff', sun: { cx: 548, cy: 48, r: 30, fill: '#ffd23f' }, back: '#5bb5f0', front: '#2f8fd8', coins: false },
+  pirate: { ship: 'pirate-ship', skyTop: '#6a4c93', skyBottom: '#ffb27a', sun: { cx: 520, cy: 176, r: 44, fill: '#ff7b54' }, back: '#3f7f99', front: '#24576e', coins: true },
+};
+
+export function createBattleScene(kid, { theme = 'navy' } = {}) {
+  const T = THEMES[theme] || THEMES.navy;
   const svg = el('svg', { viewBox: '0 0 600 300', class: 'battle-scene', preserveAspectRatio: 'xMidYMid meet', 'aria-hidden': 'true' });
   const defs = el('defs', {}, svg);
   const sky = el('linearGradient', { id: 'bsky', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
-  el('stop', { offset: '0', 'stop-color': '#8fd3ff' }, sky);
-  el('stop', { offset: '1', 'stop-color': '#e2f5ff' }, sky);
+  el('stop', { offset: '0', 'stop-color': T.skyTop }, sky);
+  el('stop', { offset: '1', 'stop-color': T.skyBottom }, sky);
   const sea = el('linearGradient', { id: 'bsea', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
   el('stop', { offset: '0', 'stop-color': '#3aa0e8' }, sea);
   el('stop', { offset: '1', 'stop-color': '#1d6fb8' }, sea);
 
   // Sky and sea run far past the 600x300 box so wide or tall screens show no empty bands
   // (the svg overflows; its container clips).
-  el('rect', { x: -2000, y: -2000, width: 4600, height: 2300, fill: '#e2f5ff' }, svg);
+  el('rect', { x: -2000, y: -2000, width: 4600, height: 2300, fill: T.skyBottom }, svg);
   el('rect', { x: -2000, y: 0, width: 4600, height: 300, fill: 'url(#bsky)' }, svg);
-  el('rect', { x: -2000, y: -2000, width: 4600, height: 2000, fill: '#8fd3ff' }, svg);
-  el('circle', { cx: 548, cy: 48, r: 30, fill: '#ffd23f' }, svg);
-  el('path', { d: 'M-2000 200 H0 Q50 192 100 200 T200 200 T300 200 T400 200 T500 200 T600 200 H2600 V2300 H-2000 Z', fill: '#5bb5f0' }, svg);
+  el('rect', { x: -2000, y: -2000, width: 4600, height: 2001, fill: T.skyTop }, svg);
+  el('circle', T.sun, svg);
+  el('path', { d: 'M-2000 200 H0 Q50 192 100 200 T200 200 T300 200 T400 200 T500 200 T600 200 H2600 V2300 H-2000 Z', fill: T.back }, svg);
 
   // Enemy ship: outer group moves (sink / sail away), inner group bobs.
   const shipMove = el('g', { transform: `translate(${SHIP_X} ${SHIP_Y})` }, svg);
   const shipBob = el('g', {}, shipMove);
   el('animateTransform', { attributeName: 'transform', type: 'translate', values: '0 0; 0 -4; 0 0', dur: '3.2s', repeatCount: 'indefinite' }, shipBob);
-  const ship = art.vehicle('battleship');
+  const ship = art.vehicle(T.ship);
   ship.setAttribute('x', 0);
   ship.setAttribute('y', 0);
   ship.setAttribute('width', 420);
@@ -63,7 +72,7 @@ export function createBattleScene(kid) {
   const parts = [...ship.querySelectorAll('.part')].sort((a, b) => a.dataset.part - b.dataset.part);
 
   // Front waves hide the hull below the waterline (and the ship as it sinks).
-  const front = el('path', { d: 'M-2000 210 H0 Q40 202 80 210 T160 210 T240 210 T320 210 T400 210 T480 210 T560 210 T640 210 H2600 V2300 H-2000 Z', fill: '#2f8fd8' }, svg);
+  const front = el('path', { d: 'M-2000 210 H0 Q40 202 80 210 T160 210 T240 210 T320 210 T400 210 T480 210 T560 210 T640 210 H2600 V2300 H-2000 Z', fill: T.front }, svg);
   el('animateTransform', { attributeName: 'transform', type: 'translate', values: '0 0; -40 0; 0 0', dur: '6s', repeatCount: 'indefinite' }, front);
 
   // Player boat + the kid's own character as the captain.
@@ -71,6 +80,7 @@ export function createBattleScene(kid) {
   const boat = art.vehicle('player-boat');
   Object.entries({ x: 0, y: 196, width: 170, height: 102 }).forEach(([k, v]) => boat.setAttribute(k, v));
   const captain = art.character(kid.avatar, kid.color);
+  captain.classList.remove('char'); // keep page-level .char sizing rules off the nested svg
   Object.entries({ x: 34, y: 196, width: 56, height: 62 }).forEach(([k, v]) => captain.setAttribute(k, v));
   boatG.append(captain, boat);
 
@@ -147,7 +157,7 @@ export function createBattleScene(kid) {
     sfx.waterSplash();
     const g = el('g', {}, fx);
     const drops = Array.from({ length: 7 }, (_, k) => ({
-      e: el('circle', { cx: x, cy: y, r: 5, fill: '#fff' }, g),
+      e: el('circle', { cx: x, cy: y, r: 5, fill: T.coins && k % 2 ? '#ffd23f' : '#fff', stroke: T.coins && k % 2 ? '#e0a800' : 'none' }, g),
       vx: (k - 3) * 9,
       vy: -60 - Math.abs(3 - k) * -6,
     }));

@@ -15,6 +15,7 @@ or **Words** (sight words, including the teacher's weekly printed list), or **Ba
 - **v1.4 (Nov 3, 2026):** Words mode. Math/Words picker after player select. Sight-word rounds with look-alike choices. Built-in Dolch lists. Parent area: per-kid word list, word stats, and "Add teacher list" from a photo (on-device OCR) or typed/pasted words with an editable check step. Parent gear made easier to see.
 - **v1.5 (Nov 3, 2026):** Calogero asked for the game choice on the first screen. The splash now shows Math / Words cards (replacing Play and the separate picker screen) → pick player → straight into that game.
 - **v1.6 (Nov 3, 2026):** Battleship (3rd card on the first screen): math rounds where each right answer blows up 1 of the ship's 10 parts; hit all 10 to sink it. More natural voice: Premium voices ranked first, novelty voices skipped, pitch back to normal, and an auto-switch when a better voice is downloaded. Parent voice picker shows quality and has a Test button.
+- **v1.7 (Nov 4, 2026):** Pirate ship for Words. Tapping Words opens a menu: Classic or Pirate ship. The pirate version uses the same rules as the math Battleship but looks distinct (wooden pirate ship, sunset sky, purple-teal sea, gold coins in splashes, "Ahoy!" lines).
 - **Live at:** https://chooch530.github.io/pengicorn-math/ (repo chooch530/pengicorn-math, GitHub Pages from `main` root).
 - **Next:** kid testing feedback on Words mode. Do NOT build Unicorn Meadow or Rainbow Castle until Calogero confirms.
 - **Ideas Calogero has seen, not approved yet:** My Friends collection, kid's own character as the math hero, fish flying to the hero plus streak celebrations, soft background music.
@@ -55,7 +56,7 @@ or **Words** (sight words, including the teacher's weekly printed list), or **Ba
 | Offline | `sw.js` cache-first. **Bump `VERSION` on every deploy** and add new files to `FILES`. `tests/sw.test.js` fails if a file is missing from `FILES`. |
 | Art swap | Screens only call `art.character(kind, variant)` / `art.object(kind)` from `js/art/registry.js`. A sprite pack is a new provider passed to `setProvider()`. Animations are CSS classes on the returned element (`.bounce`, `.dance`, `.glow`, idle blink on `.eyes`). |
 | Pictures setting | `kid.prefs.pictures` (default false, `normalizeKid` adds it to old saves). Off: big number cards, spoken "What is 2 plus 1?". On: objects with every problem plus the Pip story. Off-mode hint/reveal: `showPictures()` removes `.pics-off`, re-fits, then glows/counts as before. |
-| Navigation | splash (**Math / Words / Battleship** cards; the tap also unlocks audio, sets `app.mode`) → kids (or addKid) → `app.startGame()` → Math: home (map) → levels → play; Words: words (play); Battleship: battleLevels → battle. Home from the map or words goes back to the splash to switch games; the splash always leads to player select. The parent gear (hold 3s) is on kids (top-left) and the map (bottom-left). |
+| Navigation | splash (**Math / Words / Battleship** cards; the tap also unlocks audio, sets `app.mode`) → kids (or addKid) → `app.startGame()` → Math: home (map) → levels → play; Words: wordsMenu → words (Classic) or wordsBattle (Pirate ship); Battleship: battleLevels → battle. Home from the map, the Words menu or Battleship levels goes back to the splash to switch games; the splash always leads to player select. The parent gear (hold 3s) is on kids (top-left) and the map (bottom-left). |
 | Words round | `logic/sight.js`, same shape as `round.js`: 10 words, hint on 1st miss (re-say the word), reveal on 2nd ("This word says ___"), stars and adaptive bands reuse `difficulty.js`/`scoring.js`. Prompt "Find the word: ___." A big blue speaker button says just the word. The kid's own character is the hero. Meadow theme. |
 | Word choices | 2 look-alikes by `lookAlikeScore` (edit distance, anagram bonus for was/saw, same first/last letter, length). Prefer the kid's list (−1.2), topped up from all Dolch words for short lists. Band 0 = random 2 of the closest 8, band 1 = of 5, band 2 = always the closest + 1 of the next 3. |
 | Word order | `wordQueue`: every word before any repeats, last round's words go to the back, never the same word twice in a row. Rounds are always 10, so lists of any size work. |
@@ -64,6 +65,7 @@ or **Words** (sight words, including the teacher's weekly printed list), or **Ba
 | Battleship rules (Calogero) | Math only. A right answer on ANY try = hit; only a full miss (answer revealed) fires and splashes. 10 hits in the 10-question round = sink; otherwise the ship sails away smoking ("So close! You hit it N times…"). Stars and level progress count exactly like Penguin Island (`recordRound` on `add`). |
 | Battleship code | `logic/battle.js` (pure: part order, shoot, sunk). `ui/play.js` with `battle: true` (routes `battleLevels` → `battle`); `ui/battleScene.js` draws the scene in one SVG (viewBox 600×300; sky and sea extend far past it so no empty bands) and animates with rAF + SMIL (bob, smoke, fire). Art via `art.vehicle('battleship' | 'player-boat')` in `art/battleship.js`; a sprite pack must keep 10 `.part` elements with `data-part` 0–9. The kid's own character captains the boat. Sounds: `sfx.cannon/boom/waterSplash/sink/horn` (Web Audio noise + tones). Answer buttons lock on a right answer so double taps can't skip ahead. |
 | Voice choice | `speech.js` ranks English voices: Premium > Enhanced > standard, en-US first, nice names (Ava, Zoe, Samantha, Evan…), Apple novelty voices last. The parent's pick is honored unless a better tier appears than existed when they picked (`settings.voiceBestAtPick`). Rate 0.9, pitch 1.0 (the old 1.1 pitch sounded synthetic). Web pages can't use Siri voices; a downloaded Premium voice is the realistic ceiling. |
+| Pirate ship (Words) | Calogero wanted Battleship for words, visually distinct. `ui/wordsMenu.js` (Classic / Pirate ship) → `words` or `wordsBattle` (`wordsPlay.js` with `battle: true`). Same hit rules as math (any-try right = hit, reveal = splash, 10 = sink). `createBattleScene(kid, { theme: 'pirate' })`; `art.vehicle('pirate-ship')` keeps the same 420×170 box, waterline and 10 `.part` elements. Body theme `sunset`. The hear-the-word button floats in the scene's top-right. In battle mode the scene has a minimum height (30vh) and the word font shrinks to fit. Home from either words game goes to the Words menu. |
 | Story text | Hero is "Pip" the penguin. Objects alternate between fish and snowballs. Zero cases have their own sentences ("Pip has no fish…", "Pip does not catch any more"). |
 
 ## Layout
@@ -75,20 +77,21 @@ js/main.js            boot + router (app object shared by screens)
 js/logic/             PURE, no DOM: rng, levels, problems, distractors, difficulty, scoring, round, progress, words (spoken text), sight (sight words), battle
 js/audio/             speech.js (Web Speech), sfx.js (Web Audio)
 js/art/               registry.js (the only art entry point), penguin.js, unicorn.js, objects.js, battleship.js
-js/ui/                dom, chrome (top bar, hold button), confetti, splash, kidSelect, home (math map), levelSelect, play (+ battle mode), battleScene, wordsPlay, reward, parent, listEditor
+js/ui/                dom, chrome (top bar, hold button), confetti, splash, kidSelect, home (math map), levelSelect, play (+ battle mode), battleScene (navy/pirate themes), wordsMenu, wordsPlay (+ battle mode), reward, parent, listEditor
 vendor/ocr/           on-device photo reading (see vendor/ocr/README.md)
 tests/                node --test; no dependencies
 ```
 
 ## Deploying
 - Commit and push to `main`; Pages redeploys in about a minute.
-- **Bump `VERSION` in `sw.js` on every deploy** (v1.6.0 is current), or the iPad keeps the old cache.
+- **Bump `VERSION` in `sw.js` on every deploy** (v1.7.0 is current), or the iPad keeps the old cache.
 - Claude's push access needs the Claude GitHub App *installed* on chooch530 with this repo selected. Being *authorized* is not enough.
 
 ## Commands
 - `npm test` runs all unit tests (Node 18+).
 - `python3 -m http.server 8080` serves locally. ES modules don't load from `file://`.
 - Battleship check: on the same sizes, play one perfect round (expect "You sank the ship!") and one with a reveal (expect "So close!"); wait for the hint to finish before the second wrong tap.
+- Pirate check: Words → Pirate ship on the same sizes; one perfect round ("You sank the pirate ship!") and one with a reveal ("the pirates sailed away").
 - Words check: play a words round (with a hint and a reveal) on the same sizes; no word card text may be cut off. Test a photo list by uploading a generated JPEG of a printed list into the list editor's file input.
 - Layout check: play rounds at L1–L3 in headless Chrome at 375×667, 393×852, 852×393, 744×1133, 810×1010, 1180×820 and 1024×1366. Run both pictures off and on, including a wrong answer (the hint). Assert no screen/equation overflow, no off-screen buttons, no answer buttons under 80px, and the equation children on one row in left-to-right order.
 
