@@ -2,7 +2,8 @@
 // math question on a number pad that 5–7 year olds can't do yet.
 import { h, icons } from './dom.js';
 import * as speech from '../audio/speech.js';
-import { accuracy, mostMissed, newKid, exportStore, importStore, unlockAll, setPictures, activeListId, setWordList } from '../logic/progress.js';
+import { accuracy, mostMissed, newKid, exportStore, importStore, unlockEverything, setPictures, activeListId, setWordList } from '../logic/progress.js';
+import { PATH } from '../logic/path.js';
 import { BUILTIN_LISTS } from '../logic/sight.js';
 import { openListEditor } from './listEditor.js';
 import { LEVELS } from '../logic/levels.js';
@@ -77,7 +78,7 @@ function openParentPanel(app) {
     const acc = accuracy(kid, 'add');
     const s = kid.stats.add;
     const mp = kid.modes.add;
-    const missed = mostMissed(kid, 'add', 5);
+    const missed = ['add', 'sub', 'mix'].flatMap((m) => mostMissed(kid, m, 5)).sort((a, b) => b[1] - a[1]).slice(0, 5);
     return h(
       'div',
       { class: 'kid-report' },
@@ -88,13 +89,16 @@ function openParentPanel(app) {
         h('div', {}, h('b', {}, acc === null ? '—' : `${acc}%`), 'first-try accuracy (addition)'),
         h('div', {}, h('b', {}, String(s.problems)), 'problems answered'),
         h('div', {}, h('b', {}, mp.level === 1 ? 'Level 1' : `Levels 1–${mp.level}`), 'addition levels open'),
-        h('div', {}, h('b', {}, String(kid.totalStars)), 'stars earned')
+        h('div', {}, h('b', {}, String(kid.totalStars)), 'stars earned'),
+        h('div', {}, h('b', {}, accuracy(kid, 'sub') === null ? '—' : `${accuracy(kid, 'sub')}%`), 'first-try accuracy (subtraction)'),
+        h('div', {}, h('b', {}, accuracy(kid, 'mix') === null ? '—' : `${accuracy(kid, 'mix')}%`), 'first-try accuracy (mixed + and −)'),
+        h('div', {}, h('b', {}, `${Math.min(kid.modes.path.done, PATH.length)}/${PATH.length}`), `Heroes missions done${kid.prefs.team ? ` (${kid.prefs.team === 'unicorn' ? 'unicorn' : 'hero'} team)` : ''}`)
       ),
       h(
         'p',
         {},
         missed.length
-          ? 'Missed most: ' + missed.map(([id, n]) => `${id.replace('+', ' + ')} (${n}×)`).join(', ')
+          ? 'Missed most: ' + missed.map(([id, n]) => `${id.replace('+', ' + ').replace('-', ' − ')} (${n}×)`).join(', ')
           : 'No missed problems yet.'
       ),
       h(
@@ -135,13 +139,14 @@ function openParentPanel(app) {
           },
           'Reset progress'
         ),
-        mp.level < Math.max(...Object.keys(LEVELS.add).map(Number))
+        Object.keys(LEVELS).some((m) => kid.modes[m].level < Math.max(...Object.keys(LEVELS[m]).map(Number))) ||
+        kid.modes.path.done < PATH.length
           ? h(
               'button',
               {
                 class: 'btn small-btn',
                 onclick: () => {
-                  app.updateKid(unlockAll(kid, 'add'));
+                  app.updateKid(unlockEverything(kid));
                   paint();
                 },
               },
@@ -350,7 +355,8 @@ function openParentPanel(app) {
         'p',
         { class: 'note', style: { marginTop: '20px' } },
         `Penguin Island levels: 1 = sums to ${LEVELS.add[1].maxAnswer}, 2 = to ${LEVELS.add[2].maxAnswer}, 3 = to ${LEVELS.add[3].maxAnswer}. ` +
-          'Kids unlock the next level after 2 strong rounds in a row at the hardest difficulty of their current level.'
+          'Kids unlock the next level after 2 strong rounds in a row at the hardest difficulty of their current level. ' +
+          `Heroes: ${PATH.length} missions in 3 chapters (numbers to 5, 10, 20) mixing addition, subtraction, + and − together, and sight words. Finishing a mission opens the next. "Unlock all levels" also opens every mission.`
       )
     );
   }

@@ -3,6 +3,7 @@
 // Pure data helpers are exported separately so they can be unit-tested.
 import { applyRound } from './scoring.js';
 import { LEVELS } from './levels.js';
+import { newPathProgress, finishStop, openAll } from './path.js';
 
 export const STORAGE_KEY = 'pengicorn.v1';
 export const MAX_KIDS = 3;
@@ -38,7 +39,8 @@ export function normalizeKid(kid) {
   const k = structuredCloneSafe(kid);
   k.modes = k.modes || {};
   k.stats = k.stats || {};
-  k.prefs = { pictures: false, ...(k.prefs || {}) };
+  // team: Heroes world team ('hero' | 'unicorn'), null until the kid picks one.
+  k.prefs = { pictures: false, team: null, ...(k.prefs || {}) };
   for (const mode of Object.keys(LEVELS)) {
     const mp = { ...newModeProgress(), ...(k.modes[mode] || {}) };
     if (mp.band !== undefined) {
@@ -52,6 +54,30 @@ export function normalizeKid(kid) {
   // Sight words. list = id of the list this kid practices (null = automatic, see activeListId).
   k.modes.words = { list: null, band: 0, recent: [], bestStars: {}, ...(k.modes.words || {}) };
   k.stats.words = { problems: 0, firstTry: 0, missed: {}, ...(k.stats.words || {}) };
+  // Heroes world: the SplashLearn-style path of missions.
+  k.modes.path = { ...newPathProgress(), ...(k.modes.path || {}) };
+  return k;
+}
+
+/** Heroes world: pick the Super Hero or Super Unicorn team. */
+export function setTeam(kid, team) {
+  const k = normalizeKid(kid);
+  k.prefs.team = team === 'unicorn' ? 'unicorn' : 'hero';
+  return k;
+}
+
+/** Pure: mark a Hero Path stop finished (opens the next one) and keep its best stars. */
+export function recordPathStop(kid, index, stars) {
+  const k = normalizeKid(kid);
+  k.modes.path = finishStop(k.modes.path, index, stars);
+  return k;
+}
+
+/** Parent switch: open every level in every math mode, and every Hero Path stop. */
+export function unlockEverything(kid) {
+  let k = normalizeKid(kid);
+  for (const mode of Object.keys(LEVELS)) k = unlockAll(k, mode);
+  k.modes.path = openAll(k.modes.path);
   return k;
 }
 

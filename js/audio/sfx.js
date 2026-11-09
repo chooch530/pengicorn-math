@@ -120,6 +120,20 @@ export const sfx = {
     tone(196, 0, 0.6, { type: 'sawtooth', vol: 0.12 });
     tone(147, 0, 0.6, { type: 'sawtooth', vol: 0.1 });
   },
+  // Heroes world.
+  whoosh() {
+    noise(0, 0.4, { type: 'bandpass', freq: 600, endFreq: 2400, vol: 0.3 });
+  },
+  pop() {
+    tone(1200, 0, 0.08, { type: 'sine', vol: 0.4, slideTo: 300 });
+    noise(0, 0.08, { type: 'highpass', freq: 3000, vol: 0.25 });
+  },
+  sparkle() {
+    [1319, 1568, 2093].forEach((f, i) => tone(f, i * 0.06, 0.2, { type: 'triangle', vol: 0.18 }));
+  },
+  boing() {
+    tone(220, 0, 0.35, { type: 'triangle', vol: 0.3, slideTo: 520 });
+  },
   fanfare() {
     [523, 659, 784, 659, 784, 1047].forEach((f, i) =>
       tone(f, i * 0.12, i === 5 ? 0.6 : 0.18, { type: 'triangle', vol: 0.35 })

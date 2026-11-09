@@ -13,6 +13,7 @@ import { penguinSVG, PENGUIN_VARIANTS } from './penguin.js';
 import { unicornSVG, UNICORN_VARIANTS } from './unicorn.js';
 import { fishSVG, snowballSVG, starSVG } from './objects.js';
 import { battleshipSVG, playerBoatSVG, pirateShipSVG } from './battleship.js';
+import { heroSVG, HERO_VARIANTS, superUnicornSVG, buddySVG, heartSVG } from './hero.js';
 
 function fromMarkup(markup) {
   const t = document.createElement('template');
@@ -22,16 +23,24 @@ function fromMarkup(markup) {
 
 const svgProvider = {
   character(kind, variant) {
+    if (kind === 'hero') return fromMarkup(heroSVG(variant));
+    if (kind === 'super-unicorn') return fromMarkup(superUnicornSVG(variant));
     const markup = kind === 'unicorn' ? unicornSVG(variant) : penguinSVG(variant);
     return fromMarkup(markup);
   },
   object(kind) {
     if (kind === 'snowball') return fromMarkup(snowballSVG());
+    if (kind === 'heart') return fromMarkup(heartSVG());
     if (kind === 'star') return fromMarkup(starSVG());
     return fromMarkup(fishSVG());
   },
   variants(kind) {
-    return Object.keys(kind === 'unicorn' ? UNICORN_VARIANTS : PENGUIN_VARIANTS);
+    if (kind === 'hero') return Object.keys(HERO_VARIANTS);
+    return Object.keys(kind === 'unicorn' || kind === 'super-unicorn' ? UNICORN_VARIANTS : PENGUIN_VARIANTS);
+  },
+  // Heroes world: a trapped friend (i picks the color).
+  buddy(i) {
+    return fromMarkup(buddySVG(i));
   },
   // Battleship pieces. A sprite pack must keep 10 elements with class "part" and data-part 0–9.
   vehicle(kind) {
@@ -65,6 +74,9 @@ export const art = {
   variants(kind) {
     return provider.variants(kind);
   },
+  buddy(i = 0) {
+    return provider.buddy(i);
+  },
   /** 'battleship' or 'pirate-ship' (10 hittable parts each), or 'player-boat'. */
   vehicle(kind) {
     return provider.vehicle(kind);
@@ -76,4 +88,5 @@ export const OBJECT_WORDS = {
   fish: { one: 'fish', many: 'fish', more: 'catches' },
   snowball: { one: 'snowball', many: 'snowballs', more: 'makes' },
   star: { one: 'star', many: 'stars', more: 'finds' },
+  heart: { one: 'heart', many: 'hearts', more: 'finds' },
 };

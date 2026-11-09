@@ -1429,3 +1429,207 @@ body[data-theme="sunset"] {
 @media (orientation: landscape) and (max-height: 520px) {
   .words-play.battle { grid-template-rows: auto minmax(34vh, 1fr) auto; }
 }
+
+/* ---------- Heroes world (SplashLearn-style path + rescue missions) ---------- */
+
+body[data-theme="hero"] {
+  --sky-top: #8fd0ff;
+  --sky-bottom: #efe8ff;
+}
+
+body[data-theme="rainbow"] {
+  --sky-top: #e3d0ff;
+  --sky-bottom: #ffe6f3;
+}
+
+.mode-heroes { background: linear-gradient(#5fb6ff 0%, #c9a7ff 60%, #ffe1f0 100%); }
+.mode-heroes .mode-glyph { color: #ffd23f; }
+
+.hero-pair {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 92%;
+}
+
+.mode-card .hero-pair .char { width: 50%; height: auto; }
+
+/* First screen with four cards: 2x2 on portrait, one row on wide screens. */
+.splash .mode-card { width: min(40vw, 30vh, 280px); min-width: 140px; }
+@media (orientation: landscape) {
+  .splash .mode-card { width: min(19vw, 52vh, 280px); min-width: 120px; }
+}
+
+.team-hero { background: linear-gradient(#5fb6ff, #e6f2ff); }
+.team-unicorn { background: linear-gradient(#c9a7ff, #ffe1f0); }
+.team-card.selected { outline: 6px solid #ffd23f; outline-offset: 4px; }
+
+/* Path */
+.hero-path { position: relative; padding-bottom: 0; }
+
+.path-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 28px;
+}
+
+.path-track {
+  position: relative;
+  width: min(100%, 640px);
+  margin: 0 auto;
+}
+
+.path-trail {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.chapter-banner {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 22px 8px 8px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: var(--shadow);
+  font-size: 26px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.chapter-banner svg { width: 36px; height: 36px; }
+
+.chapter-num {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 32px;
+  background: #7b4fd6;
+}
+
+.chapter-2 .chapter-num { background: #2f7fe0; }
+.chapter-3 .chapter-num { background: #e63946; }
+
+.path-stop {
+  position: absolute;
+  width: 96px;
+  height: 96px;
+  margin: -48px 0 0 -48px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 7px 0 rgba(43, 35, 80, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.08s;
+}
+
+.path-stop:active { transform: translateY(4px); }
+
+.path-stop .stop-glyph {
+  font-size: 40px;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1;
+}
+
+.path-stop.skill-words .stop-glyph { font-size: 30px; }
+.path-stop.skill-add { background: #3ccf7a; box-shadow: 0 7px 0 #23a85c; }
+.path-stop.skill-sub { background: #ff9f1c; box-shadow: 0 7px 0 #d67d00; }
+.path-stop.skill-mix { background: #5aa7ff; box-shadow: 0 7px 0 #2f7fe0; }
+.path-stop.skill-words { background: #ff7fb0; box-shadow: 0 7px 0 #d9558a; }
+
+.path-stop.locked {
+  background: #e4e0f0;
+  box-shadow: 0 7px 0 #c6c0dc;
+}
+
+.path-stop.locked .lock { width: 44px; height: 44px; }
+
+.path-stop.now {
+  width: 116px;
+  height: 116px;
+  margin: -58px 0 0 -58px;
+  animation: stop-glow 1.4s ease-in-out infinite;
+}
+
+.path-stop.now .stop-glyph { font-size: 48px; }
+
+@keyframes stop-glow {
+  0%, 100% { filter: drop-shadow(0 0 0 #ffe066); }
+  50% { filter: drop-shadow(0 0 14px #ffe066) drop-shadow(0 0 4px #fff); }
+}
+
+.stop-stars {
+  position: absolute;
+  bottom: -26px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2px;
+}
+
+.stop-stars svg { width: 28px; height: 28px; }
+
+/* The kid's hero stands next to the glowing stop. */
+.path-stop .path-hero {
+  position: absolute;
+  width: 96px;
+  height: auto;
+  bottom: 30px;
+  left: 82px;
+  pointer-events: none;
+}
+
+/* Rescue scene backgrounds behind the svg. */
+.play.rescue .pip-spot,
+.words-play.rescue .words-hero { background: #8fd0ff; }
+body[data-theme="rainbow"] .play.rescue .pip-spot,
+body[data-theme="rainbow"] .words-play.rescue .words-hero { background: #e3d0ff; }
+
+/* Subtraction pictures: what leaves is faded and crossed out. */
+.objects.leaving .obj-wrap,
+.obj-wrap.away {
+  opacity: 0.4;
+}
+
+.objects.leaving .obj-wrap::after,
+.obj-wrap.away::after {
+  content: "";
+  position: absolute;
+  inset: 8%;
+  background:
+    linear-gradient(45deg, transparent 44%, #e5484d 44% 56%, transparent 56%),
+    linear-gradient(-45deg, transparent 44%, #e5484d 44% 56%, transparent 56%);
+}
+
+.obj-wrap.away { transition: opacity 0.3s; }
+
+/* Stops on the right half: the hero stands on the left side so it stays on screen. */
+.path-stop .path-hero.hero-left { left: auto; right: 82px; }
+
+/* Phones: the path top bar keeps home, team chip, replay and mute (stars are on each stop). */
+@media (max-width: 500px) {
+  .hero-path .topbar .star-count { display: none; }
+}
+
+/* Words rescue: the hear button sits top-left (over the sun) so it never covers a bubble. */
+.words-play.rescue .hear-btn { right: auto; left: 12px; }
+
+/* Keep the rescue scene visible while hint pictures show; fit() shrinks the pictures instead. */
+.play.rescue { grid-template-rows: auto minmax(26vh, 1fr) auto auto; }
+@media (orientation: landscape) and (max-height: 520px) {
+  .play.rescue { grid-template-rows: auto minmax(34vh, 1fr) auto; }
+}

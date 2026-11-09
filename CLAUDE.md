@@ -5,7 +5,7 @@ Read this before changing anything. Update it whenever we make a decision.
 ## What this is
 iPad Safari learning game for kids 5–7 (Calogero's kids). After picking a player, kids choose
 **Math** (Penguin Island addition; later Unicorn Meadow subtraction, Rainbow Castle multiplication)
-or **Words** (sight words, including the teacher's weekly printed list), or **Battleship** (the same math; right answers fire a cannon at a ship). 5–10 minute sessions. Must feel like a game.
+or **Words** (sight words, including the teacher's weekly printed list), or **Battleship** (the same math; right answers fire a cannon at a ship), or **Heroes** (a SplashLearn-style path of rescue missions: addition, subtraction, mixed, sight words). 5–10 minute sessions. Must feel like a game.
 
 ## Status
 - **v1.0 (Nov 2, 2026):** Penguin Island Level 1 end to end. Splash screen, kid select/add kid, map, 10-problem round, reward screen, minimal parent screen, offline support, home-screen manifest.
@@ -16,10 +16,11 @@ or **Words** (sight words, including the teacher's weekly printed list), or **Ba
 - **v1.5 (Nov 3, 2026):** Calogero asked for the game choice on the first screen. The splash now shows Math / Words cards (replacing Play and the separate picker screen) → pick player → straight into that game.
 - **v1.6 (Nov 3, 2026):** Battleship (3rd card on the first screen): math rounds where each right answer blows up 1 of the ship's 10 parts; hit all 10 to sink it. More natural voice: Premium voices ranked first, novelty voices skipped, pitch back to normal, and an auto-switch when a better voice is downloaded. Parent voice picker shows quality and has a Test button.
 - **v1.7 (Nov 4, 2026):** Pirate ship for Words. Tapping Words opens a menu: Classic or Pirate ship. The pirate version uses the same rules as the math Battleship but looks distinct (wooden pirate ship, sunset sky, purple-teal sea, gold coins in splashes, "Ahoy!" lines).
+- **v1.8 (Nov 9, 2026):** Heroes world (4th card on the first screen). Calogero asked for a SplashLearn-like game with superheroes and unicorns: mechanics only (a path of missions played in order), all art original. Kids pick a team (Super Heroes or Super Unicorns), then follow a 24-stop path in 3 chapters (to 5/10/20) mixing addition, **subtraction (new)**, mixed + and −, and sight words. Each stop is a rescue mission: a right answer pops a bubble and saves a trapped friend; save all 10 to win.
 - **Live at:** https://chooch530.github.io/pengicorn-math/ (repo chooch530/pengicorn-math, GitHub Pages from `main` root).
-- **Next:** kid testing feedback on Words mode. Do NOT build Unicorn Meadow or Rainbow Castle until Calogero confirms.
+- **Next:** kid testing feedback on Heroes and Words. Subtraction now exists (Heroes only); Unicorn Meadow on the Math map is still locked. Do NOT build Unicorn Meadow or Rainbow Castle until Calogero confirms.
 - **Ideas Calogero has seen, not approved yet:** My Friends collection, kid's own character as the math hero, fish flying to the hero plus streak celebrations, soft background music.
-- **Not built yet:** Unicorn Meadow, Rainbow Castle, "My Friends" collection and unlockables.
+- **Not built yet:** Unicorn Meadow, Rainbow Castle, "My Friends" collection and unlockables. Heroes has no coins, shop or avatar dressing (SplashLearn has them; not asked for).
 
 ## Hard rules (from the brief)
 - No reading required. Every instruction is spoken. Every screen has a replay-audio button.
@@ -56,7 +57,7 @@ or **Words** (sight words, including the teacher's weekly printed list), or **Ba
 | Offline | `sw.js` cache-first. **Bump `VERSION` on every deploy** and add new files to `FILES`. `tests/sw.test.js` fails if a file is missing from `FILES`. |
 | Art swap | Screens only call `art.character(kind, variant)` / `art.object(kind)` from `js/art/registry.js`. A sprite pack is a new provider passed to `setProvider()`. Animations are CSS classes on the returned element (`.bounce`, `.dance`, `.glow`, idle blink on `.eyes`). |
 | Pictures setting | `kid.prefs.pictures` (default false, `normalizeKid` adds it to old saves). Off: big number cards, spoken "What is 2 plus 1?". On: objects with every problem plus the Pip story. Off-mode hint/reveal: `showPictures()` removes `.pics-off`, re-fits, then glows/counts as before. |
-| Navigation | splash (**Math / Words / Battleship** cards; the tap also unlocks audio, sets `app.mode`) → kids (or addKid) → `app.startGame()` → Math: home (map) → levels → play; Words: wordsMenu → words (Classic) or wordsBattle (Pirate ship); Battleship: battleLevels → battle. Home from the map, the Words menu or Battleship levels goes back to the splash to switch games; the splash always leads to player select. The parent gear (hold 3s) is on kids (top-left) and the map (bottom-left). |
+| Navigation | splash (**Math / Words / Battleship / Heroes** cards; the tap also unlocks audio, sets `app.mode`) → kids (or addKid) → `app.startGame()` → Math: home (map) → levels → play; Words: wordsMenu → words (Classic) or wordsBattle (Pirate ship); Battleship: battleLevels → battle. Home from the map, the Words menu or Battleship levels goes back to the splash to switch games; the splash always leads to player select. The parent gear (hold 3s) is on kids (top-left) and the map (bottom-left). |
 | Words round | `logic/sight.js`, same shape as `round.js`: 10 words, hint on 1st miss (re-say the word), reveal on 2nd ("This word says ___"), stars and adaptive bands reuse `difficulty.js`/`scoring.js`. Prompt "Find the word: ___." A big blue speaker button says just the word. The kid's own character is the hero. Meadow theme. |
 | Word choices | 2 look-alikes by `lookAlikeScore` (edit distance, anagram bonus for was/saw, same first/last letter, length). Prefer the kid's list (−1.2), topped up from all Dolch words for short lists. Band 0 = random 2 of the closest 8, band 1 = of 5, band 2 = always the closest + 1 of the next 3. |
 | Word order | `wordQueue`: every word before any repeats, last round's words go to the back, never the same word twice in a row. Rounds are always 10, so lists of any size work. |
@@ -66,6 +67,10 @@ or **Words** (sight words, including the teacher's weekly printed list), or **Ba
 | Battleship code | `logic/battle.js` (pure: part order, shoot, sunk). `ui/play.js` with `battle: true` (routes `battleLevels` → `battle`); `ui/battleScene.js` draws the scene in one SVG (viewBox 600×300; sky and sea extend far past it so no empty bands) and animates with rAF + SMIL (bob, smoke, fire). Art via `art.vehicle('battleship' | 'player-boat')` in `art/battleship.js`; a sprite pack must keep 10 `.part` elements with `data-part` 0–9. The kid's own character captains the boat. Sounds: `sfx.cannon/boom/waterSplash/sink/horn` (Web Audio noise + tones). Answer buttons lock on a right answer so double taps can't skip ahead. |
 | Voice choice | `speech.js` ranks English voices: Premium > Enhanced > standard, en-US first, nice names (Ava, Zoe, Samantha, Evan…), Apple novelty voices last. The parent's pick is honored unless a better tier appears than existed when they picked (`settings.voiceBestAtPick`). Rate 0.9, pitch 1.0 (the old 1.1 pitch sounded synthetic). Web pages can't use Siri voices; a downloaded Premium voice is the realistic ceiling. |
 | Pirate ship (Words) | Calogero wanted Battleship for words, visually distinct. `ui/wordsMenu.js` (Classic / Pirate ship) → `words` or `wordsBattle` (`wordsPlay.js` with `battle: true`). Same hit rules as math (any-try right = hit, reveal = splash, 10 = sink). `createBattleScene(kid, { theme: 'pirate' })`; `art.vehicle('pirate-ship')` keeps the same 420×170 box, waterline and 10 `.part` elements. Body theme `sunset`. The hear-the-word button floats in the scene's top-right. In battle mode the scene has a minimum height (30vh) and the word font shrinks to fit. Home from either words game goes to the Words menu. |
+| Heroes world (Calogero) | "Mimic SplashLearn" = its structure (one path of short missions, stars per stop, "next mission" after each), NOT its art, characters or name. Teams: Super Heroes (`art.character('hero')`, an original caped kid) or Super Unicorns (`'super-unicorn'`, the unicorn plus cape and mask), saved in `kid.prefs.team`; colors come from the kid's player color (`teamCharacter()` in `art/hero.js`). Route: splash → kids → `heroTeam` (first time) → `heroPath` → `heroStop` → play/wordsPlay with `rescue: true` → reward (Play = next stop). |
+| Hero Path | `logic/path.js`: 3 chapters × 8 stops (`add, sub, words, add, mix, sub, words, mix`), chapter n = level n. `kid.modes.path = {done, stars}`. Finishing a stop with any stars opens the next (never a fail); replays keep the best stars and never skip ahead. Stops set their own level, bypassing the per-mode unlock, but rounds still record stats/bands under `add`/`sub`/`mix`/`words`. Parent "Unlock all levels" now opens every mode's levels and every stop (`unlockEverything`). |
+| Rescue missions | `ui/rescueScene.js` has the same `fire(hit, part)` / `finale(won)` interface as `battleScene.js`, so it reuses `logic/battle.js` for which bubble pops. Same rules as Battleship: any-try right = save, reveal = "Boing!", 10 = win. Themes: city (hero) / rainbow cloud castle (unicorn). The grumpy cloud is silly, not scary. Pictures mode uses stars and hearts. |
+| Subtraction | `LEVELS.sub` and `LEVELS.mix` reuse the addition numbers; for subtraction a band limits the FIRST number, answers are 0..max and never negative. `mix` flips a coin per problem for + or −. Problems with a 0 anywhere (incl. answer 0) are drawn less often. Pictures: the first group shows the start amount; the second group is crossed out ("leaving"); the hint crosses out that many in the first group and counts what's left. Spoken: "What is 5 minus 2?". |
 | Story text | Hero is "Pip" the penguin. Objects alternate between fish and snowballs. Zero cases have their own sentences ("Pip has no fish…", "Pip does not catch any more"). |
 
 ## Layout
@@ -74,17 +79,17 @@ index.html, manifest.webmanifest, sw.js, package.json (tests only)
 css/styles.css
 icons/ (generated by tools/make-icons.mjs from the in-code SVGs)
 js/main.js            boot + router (app object shared by screens)
-js/logic/             PURE, no DOM: rng, levels, problems, distractors, difficulty, scoring, round, progress, words (spoken text), sight (sight words), battle
+js/logic/             PURE, no DOM: rng, levels, problems, distractors, difficulty, scoring, round, progress, words (spoken text), sight (sight words), battle, path (Hero Path)
 js/audio/             speech.js (Web Speech), sfx.js (Web Audio)
-js/art/               registry.js (the only art entry point), penguin.js, unicorn.js, objects.js, battleship.js
-js/ui/                dom, chrome (top bar, hold button), confetti, splash, kidSelect, home (math map), levelSelect, play (+ battle mode), battleScene (navy/pirate themes), wordsMenu, wordsPlay (+ battle mode), reward, parent, listEditor
+js/art/               registry.js (the only art entry point), penguin.js, unicorn.js, objects.js, battleship.js, hero.js (hero, super-unicorn, buddies, heart)
+js/ui/                dom, chrome (top bar, hold button), confetti, splash, kidSelect, home (math map), levelSelect, play (+ battle/rescue modes), battleScene (navy/pirate themes), rescueScene (hero/unicorn themes), heroTeam, heroPath, wordsMenu, wordsPlay (+ battle/rescue modes), reward, parent, listEditor
 vendor/ocr/           on-device photo reading (see vendor/ocr/README.md)
 tests/                node --test; no dependencies
 ```
 
 ## Deploying
 - Commit and push to `main`; Pages redeploys in about a minute.
-- **Bump `VERSION` in `sw.js` on every deploy** (v1.7.0 is current), or the iPad keeps the old cache.
+- **Bump `VERSION` in `sw.js` on every deploy** (v1.8.0 is current), or the iPad keeps the old cache.
 - Claude's push access needs the Claude GitHub App *installed* on chooch530 with this repo selected. Being *authorized* is not enough.
 
 ## Commands
@@ -92,6 +97,7 @@ tests/                node --test; no dependencies
 - `python3 -m http.server 8080` serves locally. ES modules don't load from `file://`.
 - Battleship check: on the same sizes, play one perfect round (expect "You sank the ship!") and one with a reveal (expect "So close!"); wait for the hint to finish before the second wrong tap.
 - Pirate check: Words → Pirate ship on the same sizes; one perfect round ("You sank the pirate ship!") and one with a reveal ("the pirates sailed away").
+- Heroes check: on the same sizes, new kid → Heroes → pick a team → play stop 1 perfectly (expect "You saved all ten friends!") and stop 2 (subtraction) with two reveals (expect crossed-out pictures in the hint and "Great try! You saved 8 friends"); Play on the reward goes to the next stop; the path shows stars on finished stops and the hero next to the glowing one.
 - Words check: play a words round (with a hint and a reveal) on the same sizes; no word card text may be cut off. Test a photo list by uploading a generated JPEG of a printed list into the list editor's file input.
 - Layout check: play rounds at L1–L3 in headless Chrome at 375×667, 393×852, 852×393, 744×1133, 810×1010, 1180×820 and 1024×1366. Run both pictures off and on, including a wrong answer (the hint). Assert no screen/equation overflow, no off-screen buttons, no answer buttons under 80px, and the equation children on one row in left-to-right order.
 

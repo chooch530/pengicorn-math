@@ -10,6 +10,19 @@ import * as levelSelect from './ui/levelSelect.js';
 import * as wordsPlay from './ui/wordsPlay.js';
 import * as wordsMenu from './ui/wordsMenu.js';
 import * as reward from './ui/reward.js';
+import * as heroTeam from './ui/heroTeam.js';
+import * as heroPath from './ui/heroPath.js';
+import { PATH, isOpen, currentStop } from './logic/path.js';
+
+/** Heroes world: open one Hero Path stop (a math or words rescue mission). */
+function heroStop(app, { stop } = {}) {
+  const kid = app.kid;
+  if (!kid) return app.go('kids');
+  const index = Number.isInteger(stop) && isOpen(kid.modes.path, stop) ? stop : currentStop(kid.modes.path);
+  const s = PATH[index];
+  if (s.skill === 'words') return wordsPlay.render(app, { rescue: true, stop: index });
+  return play.render(app, { mode: s.skill, level: s.level, rescue: true, stop: index });
+}
 
 const SCREENS = {
   splash: splash.render,
@@ -24,6 +37,9 @@ const SCREENS = {
   wordsMenu: wordsMenu.render,
   play: play.render,
   reward: reward.render,
+  heroTeam: heroTeam.render,
+  heroPath: heroPath.render,
+  heroStop,
 };
 
 const root = document.getElementById('app');
@@ -34,13 +50,14 @@ let currentParams = {};
 const app = {
   store: loadStore(),
   kidId: null,
-  mode: 'math', // chosen on the first screen: 'math' | 'words' | 'battle'
+  mode: 'math', // chosen on the first screen: 'math' | 'words' | 'battle' | 'heroes'
 
   get kid() {
     return this.store.kids.find((k) => k.id === this.kidId) || null;
   },
   /** After a player is picked: go into the game chosen on the first screen. */
   startGame() {
+    if (this.mode === 'heroes') return this.go(this.kid?.prefs?.team ? 'heroPath' : 'heroTeam');
     this.go({ words: 'wordsMenu', battle: 'battleLevels' }[this.mode] || 'home');
   },
   setKid(id) {
@@ -82,7 +99,7 @@ const app = {
   },
   /** Re-render the current screen (e.g. after parent changes). */
   refresh() {
-    if (['play', 'reward', 'words', 'battle', 'wordsBattle'].includes(currentName)) return;
+    if (['play', 'reward', 'words', 'battle', 'wordsBattle', 'heroStop'].includes(currentName)) return;
     if (!this.kid && currentName === 'home') return this.go('kids');
     if (!this.store.kids.length && currentName !== 'splash') return this.go('addKid');
     this.go(currentName, currentParams);

@@ -10,19 +10,27 @@ import { createRng } from '../logic/rng.js';
 import { createRound, nextInRound, answer, roundSummary } from '../logic/round.js';
 import { PLAYABLE, ROUND_SIZE } from '../logic/levels.js';
 import { recordRound, bandFor } from '../logic/progress.js';
-import { questionText, numberQuestionText, praiseText, hintText, countingText, equationText, battleIntroText, battleHitText, battleMissText, battleSunkText, battleEscapeText } from '../logic/words.js';
+import { questionText, numberQuestionText, praiseText, hintText, countingText, equationText, battleIntroText, battleHitText, battleMissText, battleSunkText, battleEscapeText, rescueIntroText, rescueHitText, rescueMissText, rescueWinText, rescueEscapeText } from '../logic/words.js';
 import { createBattle, shoot, shotFor, isSunk } from '../logic/battle.js';
 import { createBattleScene } from './battleScene.js';
+import { createRescueScene } from './rescueScene.js';
+import { recordPathStop } from '../logic/progress.js';
+import { teamCharacter } from '../art/hero.js';
 
 // battle=true: Battleship version. Same math round; right answers fire the cannon at the ship.
-export function render(app, { mode = 'add', level, battle = false } = {}) {
+// rescue=true: Heroes world. Right answers pop a bubble and save a friend. `stop` = Hero Path index.
+// mode: 'add' | 'sub' | 'mix'.
+export function render(app, { mode = 'add', level, battle = false, rescue = false, stop = null } = {}) {
   const kid = app.kid;
   if (!kid) return app.go('kids');
 
   const mp = kid.modes[mode];
   // Play the requested level if it's unlocked and built; otherwise the highest one that is.
+  // Hero Path stops set their own level (the path is the lock).
   const open = PLAYABLE[mode].filter((lv) => lv <= mp.level);
-  const lvl = open.includes(level) ? level : Math.max(...open);
+  const lvl = rescue && PLAYABLE[mode].includes(level) ? level : open.includes(level) ? level : Math.max(...open);
+  const team = teamCharacter(kid).team;
+  const heroName = team === 'unicorn' ? 'Sparkle' : 'Super ' + kid.name;
   const band = bandFor(kid, mode, lvl);
   // Pictures off (default): just numbers. Pictures still pop in as the hint after a miss.
   const pictures = !!kid.prefs?.pictures;
@@ -33,25 +41,32 @@ export function render(app, { mode = 'add', level, battle = false } = {}) {
     level: lvl,
     band,
     rng,
-    objectKinds: ['fish', 'snowball'],
+    objectKinds: rescue ? ['star', 'heart'] : ['fish', 'snowball'],
     avoidIds: mp.recent || [],
   });
 
-  const scene = battle ? createBattleScene(kid) : null;
-  let fleet = battle ? createBattle(rng) : null;
-  const pip = battle ? scene.el : art.character('penguin', 'blue');
+  // Both scenes share one interface: fire(hit, part) and finale(won).
+  const scene = battle ? createBattleScene(kid) : rescue ? createRescueScene(kid) : null;
+  const lines = rescue
+    ? { intro: () => rescueIntroText(team), hit: rescueHitText, miss: rescueMissText, won: () => rescueWinText(team), lost: rescueEscapeText }
+    : { intro: battleIntroText, hit: battleHitText, miss: battleMissText, won: battleSunkText, lost: battleEscapeText };
+  let fleet = scene ? createBattle(rng) : null;
+  const pip = scene ? scene.el : art.character('penguin', 'blue');
+  const homeTarget = rescue ? 'heroPath' : battle ? 'battleLevels' : 'levels';
   const dots = h('div', { class: 'dots' });
   const equation = h('div', { class: 'equation' });
   const answers = h('div', { class: 'answers' });
   let objectEls = [];
+  let countEls = []; // the objects to count for the answer (for subtraction: what's left)
+  let awayEls = []; // subtraction: the objects that get taken away
   let qmark;
   let busy = false;
   let alive = true;
 
   const el = h(
     'div',
-    { class: `screen play${battle ? ' battle' : ''}` },
-    topbar(app, { left: [homeButton(app, battle ? 'battleLevels' : 'levels')], center: dots }),
+    { class: `screen play${scene ? ' battle' : ''}${rescue ? ' rescue' : ''}` },
+    topbar(app, { left: [homeButton(app, homeTarget)], center: dots }),
     h('div', { class: 'pip-spot' }, pip),
     equation,
     answers
@@ -69,8 +84,8 @@ export function render(app, { mode = 'add', level, battle = false } = {}) {
    * Objects for one number. Up to 5: a small cluster (4 = 2x2, 5 = 3+2).
    * Above 5: ten-frames (rows of 5, two rows per frame) so kids can see fives and tens.
    */
-  function group(count, kind, arriving) {
-    const objs = h('div', { class: 'objects' });
+  function group(count, kind, arriving, extraClass = '') {
+    const objs = h('div', { class: `objects ${extraClass}` });
     const add = (parent, i) => {
       const o = art.object(kind, { className: arriving ? 'arrive' : '' });
       if (arriving) o.style.animationDelay = `${0.4 + i * (count > 10 ? 0.07 : 0.15)}s`;
@@ -130,10 +145,23 @@ export function render(app, { mode = 'add', level, battle = false } = {}) {
     objectEls = [];
     qmark = h('div', { class: 'qmark' }, '?');
     equation.className = `equation ${pictures ? '' : 'pics-off'}`;
+    const minus = p.op === '-';
+    const first = group(p.a, p.objectKind, false);
+    const firstEls = objectEls.slice();
+    // Subtraction: the second group shows what leaves (faded, crossed out); counting happens in the first group.
+    const second = group(p.b, p.objectKind, !minus, minus ? 'leaving' : '');
+    if (minus) {
+      objectEls = firstEls;
+      countEls = firstEls.slice(0, p.answer);
+      awayEls = firstEls.slice(p.answer);
+    } else {
+      countEls = objectEls;
+      awayEls = [];
+    }
     equation.replaceChildren(
-      group(p.a, p.objectKind, false),
-      h('div', { class: 'sym' }, '+'),
-      group(p.b, p.objectKind, true),
+      first,
+      h('div', { class: 'sym' }, minus ? '−' : '+'),
+      second,
       h('div', { class: 'sym' }, '='),
       qmark
     );
@@ -154,14 +182,26 @@ export function render(app, { mode = 'add', level, battle = false } = {}) {
     if (!p) return finish();
     paintProblem(p);
     busy = false;
-    speech.speak(pictures ? questionText(p) : numberQuestionText(p));
+    speech.speak(pictures ? questionText(p, rescue ? heroName : 'Pip') : numberQuestionText(p));
+  }
+
+  /** Subtraction: cross out the ones that leave, so only what's left gets counted. */
+  async function takeAway() {
+    for (const w of awayEls) {
+      if (!alive) return;
+      if (w.classList.contains('away')) continue;
+      w.classList.add('away');
+      sfx.tap();
+      await wait(220);
+    }
   }
 
   async function glowAll({ tags = false } = {}) {
-    const step = objectEls.length > 10 ? (tags ? 380 : 180) : tags ? 520 : 320;
-    for (let i = 0; i < objectEls.length; i++) {
+    await takeAway();
+    const step = countEls.length > 10 ? (tags ? 380 : 180) : tags ? 520 : 320;
+    for (let i = 0; i < countEls.length; i++) {
       if (!alive) return;
-      const w = objectEls[i];
+      const w = countEls[i];
       const o = w.firstElementChild;
       o.classList.add('glow');
       if (tags) w.append(h('div', { class: 'count-tag' }, String(i + 1)));
@@ -179,7 +219,7 @@ export function render(app, { mode = 'add', level, battle = false } = {}) {
 
     if (res.outcome === 'correct') for (const b of answers.children) b.disabled = true;
 
-    if (res.outcome === 'correct' && battle) {
+    if (res.outcome === 'correct' && scene) {
       speech.stop();
       btn.classList.add('right');
       qmark.textContent = String(p.answer);
@@ -187,7 +227,7 @@ export function render(app, { mode = 'add', level, battle = false } = {}) {
       const shot = shoot(fleet, true);
       fleet = shot.battle;
       await scene.fire(true, shot.part);
-      await speech.speak(battleHitText(p, rng), { remember: false });
+      await speech.speak(lines.hit(p, rng), { remember: false });
       await wait(200);
       if (alive) nextProblem();
       return;
@@ -236,10 +276,10 @@ export function render(app, { mode = 'add', level, battle = false } = {}) {
     qmark.textContent = String(p.answer);
     qmark.classList.add('solved');
     await speech.speak(equationText(p), { remember: false });
-    if (battle && alive && shotFor(res.outcome) === false) {
+    if (scene && alive && shotFor(res.outcome) === false) {
       fleet = shoot(fleet, false).battle;
       await scene.fire(false);
-      await speech.speak(battleMissText(), { remember: false });
+      await speech.speak(lines.miss(), { remember: false });
     }
     await wait(400);
     if (alive) nextProblem();
@@ -247,16 +287,22 @@ export function render(app, { mode = 'add', level, battle = false } = {}) {
 
   async function finish() {
     const summary = roundSummary(round);
-    const { kid: updated, leveledUp } = recordRound(app.kid, mode, lvl, summary);
+    let { kid: updated, leveledUp } = recordRound(app.kid, mode, lvl, summary);
+    if (rescue && stop !== null) updated = recordPathStop(updated, stop, summary.stars);
     app.updateKid(updated);
-    if (battle) {
+    if (scene) {
       const sunk = isSunk(fleet);
       busy = true;
       answers.replaceChildren();
-      const line = speech.speak(sunk ? battleSunkText() : battleEscapeText(fleet.hits.length), { remember: false });
+      const line = speech.speak(sunk ? lines.won() : lines.lost(fleet.hits.length), { remember: false });
       await scene.finale(sunk);
       await line;
       if (!alive) return;
+      if (rescue) {
+        // The path is the progression here, so no "you opened level N" message.
+        app.go('reward', { summary, mode: 'rescue', homeTarget: 'heroPath', playTarget: 'heroStop', playParams: { stop: stop === null ? null : stop + 1 } });
+        return;
+      }
       app.go('reward', {
         summary, leveledUp, mode: 'battle', level: lvl, newLevel: updated.modes[mode].level,
         homeTarget: 'battleLevels', playTarget: 'battle', sunk,
@@ -275,11 +321,11 @@ export function render(app, { mode = 'add', level, battle = false } = {}) {
   return {
     el,
     enter() {
-      document.body.dataset.theme = battle ? 'sea' : 'island';
+      document.body.dataset.theme = rescue ? (team === 'unicorn' ? 'rainbow' : 'hero') : battle ? 'sea' : 'island';
       addEventListener('resize', onResize);
       addEventListener('orientationchange', onResize);
-      if (battle) {
-        speech.speak(battleIntroText(), { remember: false }).then(() => alive && nextProblem());
+      if (scene) {
+        speech.speak(lines.intro(), { remember: false }).then(() => alive && nextProblem());
       } else nextProblem();
     },
     cleanup() {

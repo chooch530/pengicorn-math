@@ -21,6 +21,31 @@ export function makeAddition(a, b) {
   };
 }
 
+/** Every subtraction problem a - b with lo <= a <= hi and 0 <= b <= a (answer never negative). */
+export function subtractionPool(lo, hi) {
+  const pool = [];
+  for (let a = Math.max(lo, 1); a <= hi; a++) {
+    for (let b = 0; b <= a; b++) pool.push(makeSubtraction(a, b));
+  }
+  return pool;
+}
+
+export function makeSubtraction(a, b) {
+  return {
+    id: `${a}-${b}`,
+    mode: 'sub',
+    a,
+    b,
+    op: '-',
+    answer: a - b,
+  };
+}
+
+/** Problems for one operation: addition bands limit the sum, subtraction bands limit the first number. */
+export function poolFor(op, lo, hi) {
+  return op === 'sub' ? subtractionPool(lo, hi) : additionPool(lo, hi);
+}
+
 /**
  * Pick the next problem for a round.
  * Draws from the current band, never repeating anything in `usedIds`,
@@ -31,9 +56,11 @@ export function nextProblem({ mode, level, band, usedIds, rng, objectKinds = ['f
   const cfg = levelConfig(mode, level);
   const [lo, hi] = cfg.bands[band];
   const fresh = (p) => !usedIds.has(p.id);
+  // Mixed rounds: a coin flip picks + or - for each problem.
+  const op = mode === 'mix' ? (rng.next() < 0.5 ? 'add' : 'sub') : mode;
 
-  let candidates = additionPool(lo, hi).filter(fresh);
-  if (candidates.length === 0) candidates = additionPool(1, cfg.maxAnswer).filter(fresh);
+  let candidates = poolFor(op, lo, hi).filter(fresh);
+  if (candidates.length === 0) candidates = poolFor(op, 1, cfg.maxAnswer).filter(fresh);
   if (candidates.length === 0) throw new Error('Problem pool exhausted');
 
   // Soft preference: skip problems seen in the kid's last round, if anything else is left.
@@ -49,8 +76,8 @@ export function nextProblem({ mode, level, band, usedIds, rng, objectKinds = ['f
     if (different.length) candidates = different;
   }
 
-  // Problems with a 0 are useful but shouldn't dominate: halve their weight.
-  const nonZero = candidates.filter((p) => p.a !== 0 && p.b !== 0);
+  // Problems with a 0 (3 + 0, 4 - 0, 4 - 4) are useful but shouldn't dominate: lower their weight.
+  const nonZero = candidates.filter((p) => p.a !== 0 && p.b !== 0 && p.answer !== 0);
   const pool = nonZero.length && rng.next() < 0.75 ? nonZero : candidates;
 
   // Pick the answer first (every sum equally likely), then a problem with that answer.

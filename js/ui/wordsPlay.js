@@ -8,12 +8,16 @@ import * as speech from '../audio/speech.js';
 import { createRng } from '../logic/rng.js';
 import { createSightRound, nextInSightRound, answerSight, sightSummary, findList, BUILTIN_LISTS } from '../logic/sight.js';
 import { activeListId, recordWordRound } from '../logic/progress.js';
-import { findWordText, wordHintText, wordRevealText, wordPraiseText, pirateIntroText, pirateHitText, battleMissText, pirateSunkText, pirateEscapeText } from '../logic/words.js';
+import { findWordText, wordHintText, wordRevealText, wordPraiseText, pirateIntroText, pirateHitText, battleMissText, pirateSunkText, pirateEscapeText, rescueIntroText, rescueWordHitText, rescueMissText, rescueWinText, rescueEscapeText } from '../logic/words.js';
 import { createBattle, shoot, isSunk } from '../logic/battle.js';
 import { createBattleScene } from './battleScene.js';
+import { createRescueScene } from './rescueScene.js';
+import { recordPathStop } from '../logic/progress.js';
+import { teamCharacter } from '../art/hero.js';
 
 // battle=true: the pirate-ship version. Right words (any try) fire the cannon; a full miss splashes.
-export function render(app, { battle = false } = {}) {
+// rescue=true: Heroes world. Right words pop a bubble and save a friend. `stop` = Hero Path index.
+export function render(app, { battle = false, rescue = false, stop = null } = {}) {
   const kid = app.kid;
   if (!kid) return app.go('kids');
 
@@ -28,9 +32,15 @@ export function render(app, { battle = false } = {}) {
     avoid: mw.recent || [],
   });
 
-  const scene = battle ? createBattleScene(kid, { theme: 'pirate' }) : null;
-  let fleet = battle ? createBattle(rng) : null;
-  const hero = battle ? scene.el : art.character(kid.avatar, kid.color);
+  const team = teamCharacter(kid).team;
+  // Both scenes share one interface: fire(hit, part) and finale(won).
+  const scene = battle ? createBattleScene(kid, { theme: 'pirate' }) : rescue ? createRescueScene(kid) : null;
+  const lines = rescue
+    ? { intro: () => rescueIntroText(team, true), hit: rescueWordHitText, miss: rescueMissText, won: () => rescueWinText(team), lost: rescueEscapeText }
+    : { intro: pirateIntroText, hit: pirateHitText, miss: battleMissText, won: pirateSunkText, lost: pirateEscapeText };
+  let fleet = scene ? createBattle(rng) : null;
+  const hero = scene ? scene.el : art.character(kid.avatar, kid.color);
+  const homeTarget = rescue ? 'heroPath' : 'wordsMenu';
   const dots = h('div', { class: 'dots' });
   const cards = h('div', { class: 'word-cards' });
   const hear = h('button', { class: 'btn btn-round hear-btn', 'aria-label': 'Hear the word' }, icons.replay());
@@ -46,8 +56,8 @@ export function render(app, { battle = false } = {}) {
 
   const el = h(
     'div',
-    { class: `screen words-play${battle ? ' battle' : ''}` },
-    topbar(app, { left: [homeButton(app, 'wordsMenu')], center: dots }),
+    { class: `screen words-play${scene ? ' battle' : ''}${rescue ? ' rescue' : ''}` },
+    topbar(app, { left: [homeButton(app, homeTarget)], center: dots }),
     h('div', { class: 'words-hero' }, hero, hear),
     cards
   );
@@ -100,13 +110,13 @@ export function render(app, { battle = false } = {}) {
 
     if (res.outcome === 'correct') for (const b of cards.children) b.disabled = true;
 
-    if (res.outcome === 'correct' && battle) {
+    if (res.outcome === 'correct' && scene) {
       speech.stop();
       btn.classList.add('right');
       const shot = shoot(fleet, true);
       fleet = shot.battle;
       await scene.fire(true, shot.part);
-      await speech.speak(pirateHitText(w, rng), { remember: false });
+      await speech.speak(lines.hit(w, rng), { remember: false });
       await wait(200);
       if (alive) next();
       return;
@@ -142,10 +152,10 @@ export function render(app, { battle = false } = {}) {
     }
     await wait(300);
     await speech.speak(wordRevealText(w), { remember: false });
-    if (battle && alive) {
+    if (scene && alive) {
       fleet = shoot(fleet, false).battle;
       await scene.fire(false);
-      await speech.speak(battleMissText(), { remember: false });
+      await speech.speak(lines.miss(), { remember: false });
     }
     await wait(500);
     if (alive) next();
@@ -153,14 +163,17 @@ export function render(app, { battle = false } = {}) {
 
   async function finish() {
     const summary = sightSummary(round);
-    const updated = recordWordRound(app.kid, list.id, summary);
+    let updated = recordWordRound(app.kid, list.id, summary);
+    if (rescue && stop !== null) updated = recordPathStop(updated, stop, summary.stars);
     app.updateKid(updated);
-    const rewardParams = { summary, mode: 'words', homeTarget: 'wordsMenu', playTarget: battle ? 'wordsBattle' : 'words' };
-    if (battle) {
+    const rewardParams = rescue
+      ? { summary, mode: 'rescue', homeTarget: 'heroPath', playTarget: 'heroStop', playParams: { stop: stop === null ? null : stop + 1 } }
+      : { summary, mode: 'words', homeTarget: 'wordsMenu', playTarget: battle ? 'wordsBattle' : 'words' };
+    if (scene) {
       busy = true;
       cards.replaceChildren();
       const sunk = isSunk(fleet);
-      const line = speech.speak(sunk ? pirateSunkText() : pirateEscapeText(fleet.hits.length), { remember: false });
+      const line = speech.speak(sunk ? lines.won() : lines.lost(fleet.hits.length), { remember: false });
       await scene.finale(sunk);
       await line;
       if (!alive) return;
@@ -177,9 +190,9 @@ export function render(app, { battle = false } = {}) {
   return {
     el,
     enter() {
-      document.body.dataset.theme = battle ? 'sunset' : 'meadow';
+      document.body.dataset.theme = rescue ? (team === 'unicorn' ? 'rainbow' : 'hero') : battle ? 'sunset' : 'meadow';
       addEventListener('resize', onResize);
-      if (battle) speech.speak(pirateIntroText(), { remember: false }).then(() => alive && next());
+      if (scene) speech.speak(lines.intro(), { remember: false }).then(() => alive && next());
       else next();
     },
     cleanup() {
