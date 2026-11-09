@@ -94,6 +94,7 @@ tests/                node --test; no dependencies
 
 ## Commands
 - `npm test` runs all unit tests (Node 18+).
+- **Browser check: use the `pengicorn-check` skill** (`.claude/skills/pengicorn-check/`). `node .claude/skills/pengicorn-check/scripts/check.mjs` plays Heroes, Penguin Island and Battleship rounds at all 7 sizes and asserts the layout rules below. Run it before every deploy; add a flow when a new game ships. The manual checks below cover what it doesn't.
 - `python3 -m http.server 8080` serves locally. ES modules don't load from `file://`.
 - Battleship check: on the same sizes, play one perfect round (expect "You sank the ship!") and one with a reveal (expect "So close!"); wait for the hint to finish before the second wrong tap.
 - Pirate check: Words → Pirate ship on the same sizes; one perfect round ("You sank the pirate ship!") and one with a reveal ("the pirates sailed away").
